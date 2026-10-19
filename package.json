@@ -1,0 +1,17 @@
+{
+  "name": "texnika-servis",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Texnika Servis: sanoat robotlari va uskunalari servisi sayti (server, admin panel, AI tashxis, akademiya)",
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server/server.mjs",
+    "dev": "node --disable-warning=ExperimentalWarning --watch server/server.mjs",
+    "build:static": "node build.mjs",
+    "test": "node --disable-warning=ExperimentalWarning server/selftest.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.135.0"
+  }
+}
