@@ -1,0 +1,20 @@
+{
+  "_izoh": "Boshlang'ich qiymatlar. Ishga tushgandan keyin bularni admin paneldagi Sozlamalar bo'limidan o'zgartirasiz.",
+  "domain": "https://example.uz",
+  "brand": "Texnika Servis",
+  "engineerName": "Barotjon",
+  "phone": "+998 99 707 99 17",
+  "whatsapp": "998997079917",
+  "telegram": "username",
+  "email": "info@example.uz",
+  "city": {
+    "uz": "Toshkent",
+    "ru": "Ташкент",
+    "en": "Tashkent"
+  },
+  "country": "UZ",
+  "responseHours": 2,
+  "workHours": "Mo-Su 00:00-24:00",
+  "securityContact": "mailto:info@example.uz",
+  "lastUpdated": "2026-10-18"
+}
