@@ -15,8 +15,8 @@ export const content = {
     langName: 'O‘zbekcha',
     langShort: 'UZ',
     meta: {
-      title: 'ABB va KUKA robotlarini ta’mirlash, sanoat uskunalari servisi | {brand}',
-      description: 'ABB va KUKA sanoat robotlarini ta’mirlash va servis, Xitoy va Germaniya uskunalarini remont qilish, sanoat elektronikasi, chastota o‘zgartirgich va servo drayverlarni tiklash, ishlab chiqarish hujjatlarini avtomatlashtirish. {city} va butun O‘zbekiston bo‘ylab.',
+      title: 'PLC servis va sanoat uskunalariga texnik xizmat ko‘rsatish | {brand}',
+      description: 'PLC servis, sanoat uskunalariga texnik xizmat ko‘rsatish va ta’mirlash: ABB va KUKA robotlari, Xitoy va Germaniya uskunalarini remont qilish, sanoat elektronikasi, chastota o‘zgartirgich va servo drayverlarni tiklash, ishlab chiqarish hujjatlarini avtomatlashtirish. {city} va butun O‘zbekiston bo‘ylab.',
       keywords: 'ABB robot ta’mirlash, KUKA robot servis, sanoat robotlari remonti, robot ta’miri Toshkent, sanoat uskunalari ta’mirlash, Xitoy uskunalari remonti, nemis uskunalari servisi, Siemens PLC dasturlash, chastota o‘zgartirgich ta’mirlash, inverter remonti, servo drayver ta’mirlash, elektron plata ta’mirlash, sanoat elektronikasi, uskuna nosozligini tez bartaraf qilish, avariya servisi, texnik xizmat ko‘rsatish, profilaktik ta’mirlash, ishlab chiqarishni avtomatlashtirish, hujjatlarni raqamlashtirish, CNC stanok ta’miri, IRC5, KR C4, O‘zbekiston, robot remonti, robot remont Toshkent, sanoat roboti servis, FANUC robot ta’miri, Yaskawa Motoman servis, Kawasaki robot, robot kalibrovkasi, robot mastering, PLC monitoring, uskunalar monitoringi, SCADA tizimi, OEE, liniya to‘xtashlarini kuzatish, PLC ta’miri, PLC dasturlash, Siemens S7-1200, S7-1500, S7-300, TIA Portal, WinCC, HMI panel ta’miri, operator paneli remonti, chastotnik remonti, Danfoss, Schneider Altivar, ABB ACS, Delta inverter, Mitsubishi, Omron, servo motor ta’miri, CNC stanok remonti, Xitoy stanoklari servisi, ishlab chiqarish liniyasi ta’miri, qadoqlash mashinasi ta’miri, sanoat avtomatlashtirish Toshkent, Samarqand, Andijon, Farg‘ona, Namangan, Navoiy, Buxoro'
     },
     a11y: { skip: 'Asosiy mazmunga o‘tish', menu: 'Menyu', theme: 'Yorug‘ yoki qorong‘i rejim', lang: 'Til', close: 'Yopish', copy: 'Nusxa olish', copied: 'Nusxa olindi' },
@@ -24,9 +24,10 @@ export const content = {
     hero: {
       tbDrawing: 'Chizma', tbEngineer: 'Muhandis', tbScale: 'Masshtab',
       eyebrow: 'Sanoat robotlari · Elektronika · Avtomatlashtirish',
+      h1k: 'PLC servis va sanoat uskunalariga texnik xizmat ko‘rsatish',
       h1a: 'Uskuna to‘xtadimi?',
       h1b: 'Tez tiklaymiz.',
-      lead: 'ABB va KUKA sanoat robotlari, Xitoy va Germaniya uskunalari, sanoat elektronikasi bo‘yicha diagnostika, ta’mirlash va servis. Ishlab chiqarish hujjatlarini onlayn tizimga o‘tkazib, jarayonni aniq va nazoratli qilamiz.',
+      lead: 'PLC va avtomatika, ABB va KUKA sanoat robotlari, Xitoy va Germaniya uskunalari, sanoat elektronikasi bo‘yicha diagnostika, ta’mirlash va servis. Ishlab chiqarish hujjatlarini onlayn tizimga o‘tkazib, jarayonni aniq va nazoratli qilamiz.',
       cta1: 'Muammoni yuborish',
       cta2: 'Xizmatlarni ko‘rish',
       badges: ['{hours} soat ichida birinchi javob', 'Masofaviy va joyida', 'Yozma hisobot va kafolat']
@@ -121,8 +122,8 @@ export const content = {
     langName: 'Русский',
     langShort: 'RU',
     meta: {
-      title: 'Ремонт роботов ABB и KUKA, сервис промышленного оборудования | {brand}',
-      description: 'Ремонт и сервис промышленных роботов ABB и KUKA, ремонт китайского и немецкого оборудования, промышленная электроника, ремонт частотных преобразователей и сервоприводов, автоматизация производственной документации. {city} и весь Узбекистан.',
+      title: 'Ремонт и сервис ПЛК, техническое обслуживание оборудования | {brand}',
+      description: 'Ремонт и сервис ПЛК, техническое обслуживание и ремонт промышленного оборудования: роботы ABB и KUKA, ремонт китайского и немецкого оборудования, промышленная электроника, ремонт частотных преобразователей и сервоприводов, автоматизация производственной документации. {city} и весь Узбекистан.',
       keywords: 'ремонт роботов ABB, сервис роботов KUKA, ремонт промышленных роботов, ремонт роботов Ташкент, ремонт промышленного оборудования Узбекистан, ремонт китайского оборудования, сервис немецкого оборудования, программирование ПЛК Siemens, ремонт частотных преобразователей, ремонт инверторов, ремонт сервоприводов, ремонт электронных плат, промышленная электроника, срочный ремонт оборудования, аварийный выезд, техническое обслуживание оборудования, автоматизация документооборота производства, цифровизация производства, ремонт станков ЧПУ, IRC5, KR C4, сервис роботов FANUC, ремонт роботов Yaskawa Motoman, роботы Kawasaki, калибровка робота, мастеринг робота, мониторинг ПЛК, мониторинг оборудования, система SCADA, OEE, учёт простоев, ремонт ПЛК, программирование ПЛК, Siemens S7-1200, S7-1500, S7-300, TIA Portal, WinCC, ремонт панелей оператора HMI, ремонт частотников Danfoss, Schneider Altivar, ABB ACS, Delta, Mitsubishi, Omron, ремонт серводвигателей, ремонт китайских станков, ремонт упаковочного оборудования, автоматизация производства Ташкент, Самарканд, Андижан, Фергана, Наманган, Навои, Бухара, Узбекистан'
     },
     a11y: { skip: 'Перейти к содержанию', menu: 'Меню', theme: 'Светлая или тёмная тема', lang: 'Язык', close: 'Закрыть', copy: 'Копировать', copied: 'Скопировано' },
@@ -130,9 +131,10 @@ export const content = {
     hero: {
       tbDrawing: 'Чертёж', tbEngineer: 'Инженер', tbScale: 'Масштаб',
       eyebrow: 'Промышленные роботы · Электроника · Автоматизация',
+      h1k: 'Ремонт ПЛК и техническое обслуживание промышленного оборудования',
       h1a: 'Оборудование встало?',
       h1b: 'Быстро восстановим.',
-      lead: 'Диагностика, ремонт и сервис промышленных роботов ABB и KUKA, китайского и немецкого оборудования, промышленной электроники. Переводим производственную документацию в онлайн, чтобы процессы стали точными и прозрачными.',
+      lead: 'Диагностика, ремонт и обслуживание ПЛК и автоматики, промышленных роботов ABB и KUKA, китайского и немецкого оборудования, промышленной электроники. Переводим производственную документацию в онлайн, чтобы процессы стали точными и прозрачными.',
       cta1: 'Описать проблему',
       cta2: 'Смотреть услуги',
       badges: ['Первый ответ в течение {hours} ч', 'Удалённо и на объекте', 'Письменный отчёт и гарантия']
@@ -227,8 +229,8 @@ export const content = {
     langName: 'English',
     langShort: 'EN',
     meta: {
-      title: 'ABB & KUKA Robot Repair, Industrial Equipment Service | {brand}',
-      description: 'Repair and service of ABB and KUKA industrial robots, Chinese and German machinery repair, industrial electronics, VFD and servo drive repair, production document automation. {city} and all of Uzbekistan.',
+      title: 'PLC Service & Industrial Equipment Maintenance in Uzbekistan | {brand}',
+      description: 'PLC service, industrial equipment maintenance and repair: ABB and KUKA robots, Chinese and German machinery repair, industrial electronics, VFD and servo drive repair, production document automation. {city} and all of Uzbekistan.',
       keywords: 'ABB robot repair, KUKA robot service, industrial robot repair, robot repair Tashkent, industrial equipment repair Uzbekistan, Chinese machinery repair, German equipment service, Siemens PLC programming, VFD repair, inverter repair, servo drive repair, PCB repair, industrial electronics repair, emergency breakdown service, preventive maintenance, production digitalization, maintenance documentation software, CNC machine repair, IRC5, KR C4, FANUC robot service, Yaskawa Motoman repair, Kawasaki robot service, robot calibration, robot mastering, PLC monitoring, machine monitoring, SCADA system, OEE tracking, downtime tracking, PLC repair, PLC programming, Siemens S7-1200, S7-1500, S7-300, TIA Portal, WinCC, HMI panel repair, Danfoss VFD repair, Schneider Altivar, ABB ACS drive repair, Delta inverter, Mitsubishi, Omron, servo motor repair, Chinese CNC machine service, packaging machine repair, industrial automation Tashkent, Samarkand, Uzbekistan, Central Asia'
     },
     a11y: { skip: 'Skip to content', menu: 'Menu', theme: 'Light or dark theme', lang: 'Language', close: 'Close', copy: 'Copy', copied: 'Copied' },
@@ -236,9 +238,10 @@ export const content = {
     hero: {
       tbDrawing: 'Drawing', tbEngineer: 'Engineer', tbScale: 'Scale',
       eyebrow: 'Industrial robots · Electronics · Automation',
+      h1k: 'PLC service and industrial equipment maintenance',
       h1a: 'Line stopped?',
       h1b: 'We get it running.',
-      lead: 'Diagnostics, repair and service for ABB and KUKA industrial robots, Chinese and German machinery and industrial electronics. We also move your production paperwork online so every process is accurate and traceable.',
+      lead: 'Diagnostics, repair and maintenance for PLCs and automation, ABB and KUKA industrial robots, Chinese and German machinery and industrial electronics. We also move your production paperwork online so every process is accurate and traceable.',
       cta1: 'Describe the problem',
       cta2: 'See services',
       badges: ['First reply within {hours} h', 'Remote and on site', 'Written report and warranty']

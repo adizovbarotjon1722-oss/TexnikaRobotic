@@ -4,14 +4,14 @@ export const content4 = {
   uz: {
     nav5: { plc: 'PLC ta’miri', warranty: 'Kafolat' },
     meta5: {
-      plcTitle: 'PLC ta’miri: Siemens S7, Mitsubishi, Omron | {brand}',
+      plcTitle: 'PLC servis va ta’miri: Siemens S7, Mitsubishi, Omron | {brand}',
       plcDesc: 'PLC kontrollerlar ta’miri: CPU STOP, SF/BF xatolari, Profinet va Profibus aloqasi, I/O modullar, analog signallar, yo‘qolgan dastur va HMI. {city} va butun O‘zbekiston bo‘ylab, kafolat bilan.',
       warrantyTitle: 'Kafolat, sifat va asl ehtiyot qismlar | {brand}',
       warrantyDesc: 'Bajarilgan ishga {wm} oy kafolat, asl ehtiyot qismlar va yozma hisobot. Kafolat muddatini ariza raqami orqali onlayn tekshiring.'
     },
     plc: {
       eyebrow: 'PLC va avtomatika',
-      title: 'PLC nosozliklarini topamiz va tuzatamiz',
+      title: 'PLC servis: nosozliklarni topamiz va tuzatamiz',
       lead: 'Liniya to‘xtadi, CPU STOP holatida, qizil SF yoki BF yonib turibdi. Avval dasturning nusxasini olamiz, keyin sababini topamiz: modul, aloqa, manba yoki dastur mantig‘i.',
       homeLead: 'Siemens S7, Mitsubishi, Omron, Allen-Bradley va Xitoy PLC lari. Dastur nusxasi, diagnostika, modul ta’miri va sinov bir joyda.',
       more: 'PLC ta’miri sahifasi',
@@ -129,14 +129,14 @@ export const content4 = {
   ru: {
     nav5: { plc: 'Ремонт ПЛК', warranty: 'Гарантия' },
     meta5: {
-      plcTitle: 'Ремонт ПЛК: Siemens S7, Mitsubishi, Omron | {brand}',
+      plcTitle: 'Ремонт и сервис ПЛК: Siemens S7, Mitsubishi, Omron | {brand}',
       plcDesc: 'Ремонт контроллеров ПЛК: CPU в STOP, ошибки SF/BF, связь Profinet и Profibus, модули ввода-вывода, аналоговые сигналы, потерянная программа и HMI. {city} и вся Узбекистан, с гарантией.',
       warrantyTitle: 'Гарантия, качество и оригинальные запчасти | {brand}',
       warrantyDesc: 'Гарантия {wm} мес. на выполненную работу, оригинальные запчасти и письменный отчёт. Проверьте срок гарантии онлайн по номеру заявки.'
     },
     plc: {
       eyebrow: 'ПЛК и автоматика',
-      title: 'Находим и устраняем неисправности ПЛК',
+      title: 'Ремонт ПЛК: находим и устраняем неисправности',
       lead: 'Линия встала, CPU в STOP, горит красный SF или BF. Сначала сохраняем копию программы, затем ищем причину: модуль, связь, питание или логика программы.',
       homeLead: 'Siemens S7, Mitsubishi, Omron, Allen-Bradley и китайские ПЛК. Копия программы, диагностика, ремонт модулей и испытания в одном месте.',
       more: 'Страница ремонта ПЛК',
@@ -254,7 +254,7 @@ export const content4 = {
   en: {
     nav5: { plc: 'PLC repair', warranty: 'Warranty' },
     meta5: {
-      plcTitle: 'PLC repair: Siemens S7, Mitsubishi, Omron | {brand}',
+      plcTitle: 'PLC Repair & Service: Siemens S7, Mitsubishi, Omron | {brand}',
       plcDesc: 'PLC controller repair: CPU in STOP, SF/BF faults, Profinet and Profibus communication, I/O modules, analog signals, lost programs and HMI. {city} and all of Uzbekistan, with a warranty.',
       warrantyTitle: 'Warranty, quality and genuine parts | {brand}',
       warrantyDesc: '{wm}-month warranty on completed work, genuine parts and a written report. Check your warranty online with the request number.'

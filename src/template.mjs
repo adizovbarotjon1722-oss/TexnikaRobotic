@@ -162,6 +162,7 @@ function footer(t, lang, cfg, mode) {
       <li><a href="${mode === 'preview' ? '#' : url(lang, 'errors/')}">${esc(t.nav3.errors)}</a></li>
       <li><a href="${mode === 'preview' ? '#' : url(lang, 'track/')}">${esc(t.nav2.track)}</a></li>
       <li><a href="${mode === 'preview' ? '#plc' : url(lang, 'plc/')}">${esc(t.nav5.plc)}</a></li>
+      <li><a href="${mode === 'preview' ? '#monitoring' : url(lang, 'monitoring/')}">${esc(t.nav9.mon)}</a></li>
       <li><a href="${mode === 'preview' ? '#warranty' : url(lang, 'warranty/')}">${esc(t.nav5.warranty)}</a></li>
       <li><a href="${mode === 'preview' ? '#support' : url(lang, 'support/')}">${esc(t.support.eyebrow)}</a></li>
       <li><a href="${home}#faq">${esc(t.nav.faq)}</a></li>
@@ -263,8 +264,7 @@ function home(t, lang, cfg, data, mode) {
     <div class="hero-scene" aria-hidden="true">${heroVideo(mode, cfg)}</div>
     <div class="wrap hero-in">
       <div class="hero-copy">
-        <p class="eyebrow">${esc(t.hero.eyebrow)}</p>
-        <h1 id="hero-title"><span class="h1a">${esc(t.hero.h1a)}</span> <span class="h1b">${esc(t.hero.h1b)}</span></h1>
+        <h1 id="hero-title"><span class="h1k">${esc(t.hero.h1k)}</span> <span class="h1a">${esc(t.hero.h1a)}</span> <span class="h1b">${esc(t.hero.h1b)}</span></h1>
         <p class="lead">${esc(t.hero.lead)}</p>
         <div class="cta-row">
           <a class="btn btn-primary btn-lg" href="#contact" data-ev="cta_hero">${icon('probe')}${esc(t.ai.analyze)}</a>
@@ -577,7 +577,8 @@ function orgLd(lang, t, cfg) {
   return {
     '@type': 'ProfessionalService', '@id': org, name: cfg.brand, url: cfg.domain + '/', logo: cfg.domain + '/assets/img/logo.png', image: cfg.domain + '/assets/img/og.png',
     description: t.meta.description, ...(realEmail(cfg) ? { email: cfg.email } : {}), priceRange: '$$',
-    address: { '@type': 'PostalAddress', addressLocality: cfg.city[lang], addressCountry: cfg.country }, areaServed: { '@type': 'Country', name: 'Uzbekistan' },
+    address: { '@type': 'PostalAddress', addressLocality: cfg.city[lang], addressCountry: cfg.country }, areaServed: [{ '@type': 'Country', name: 'Uzbekistan' }, ...['Tashkent', 'Samarkand', 'Andijan', 'Fergana', 'Namangan', 'Navoiy', 'Bukhara', 'Karshi', 'Nukus'].map((n) => ({ '@type': 'City', name: n }))],
+    knowsAbout: ['PLC service', 'PLC repair', 'Industrial equipment maintenance', 'Industrial robot repair', 'ABB robots', 'KUKA robots', 'Siemens S7', 'SCADA', 'Variable frequency drive repair', 'Servo drive repair', 'CNC machine repair'],
     openingHours: cfg.workHours, knowsLanguage: ['uz', 'ru', 'en'], founder: { '@type': 'Person', name: cfg.engineerName, jobTitle: 'Engineer' },
     sameAs: [`https://t.me/${cfg.telegram}`],
     contactPoint: { '@type': 'ContactPoint', ...(realEmail(cfg) ? { email: cfg.email } : { url: cfg.domain + url(lang, '') + '#contact' }), contactType: 'customer service', availableLanguage: ['Uzbek', 'Russian', 'English'] },

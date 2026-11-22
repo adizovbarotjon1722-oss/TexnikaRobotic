@@ -1821,3 +1821,6 @@ h2 { font-weight: 600; letter-spacing: -0.015em; line-height: 1.15; }
   .mon-arch li + li::before { content: "↓"; left: 50%; top: -20px; transform: none; }
 }
 @media (max-width: 520px) { .mon-panel th, .mon-panel td { padding-inline: 10px; } .mon-oee { display: none; } }
+
+/* ---------- 15-bosqich: SEO sarlavha qatori ---------- */
+.hero h1 .h1k { display: block; margin-bottom: 1.1rem; font: 500 clamp(0.95rem, 0.6vw + 0.8rem, 1.15rem)/1.4 var(--f-body); letter-spacing: 0; color: var(--muted); max-width: 34ch; padding-left: 0.85rem; border-left: 2px solid var(--accent); text-wrap: balance; }
