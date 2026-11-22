@@ -149,5 +149,5 @@ export function renderVideos(lang, t, cfg, videos, signedIn, assetVer) {
     ${cats.length > 1 ? `<div class="chips" role="group" aria-label="${esc(v.title)}"><button type="button" class="chip is-on" data-cat="" aria-pressed="true">${esc(v.all)}</button>${cats.map((c) => `<button type="button" class="chip" data-cat="${esc(c)}" aria-pressed="false">${esc(c)}</button>`).join('')}</div>` : ''}
     ${cards ? `<ul class="vid-grid">${cards}</ul>` : `<div class="empty">${icon('play')}<p>${esc(v.empty)}</p></div>`}
   </div></section></main>`;
-  return layout({ lang, t, cfg, sub: 'videos/', title: `${v.metaTitle} | ${cfg.brand}`, description: v.metaDesc, body, assetVer });
+  return layout({ lang, t, cfg, sub: 'videos/', title: `${v.metaTitle} | ${cfg.brand}`, description: v.metaDesc, keywords: t.meta9.kw.videos, body, assetVer });
 }

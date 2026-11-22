@@ -323,6 +323,16 @@ try {
   ok((await post('/admin/api/hero', { file: 'x'.repeat(24) + '.mp4' }, A)).status === 400, 'bosh video: noma’lum fayl rad etiladi');
   await post('/admin/api/hero', { file: '', pos: 'top' }, A);
   ok((await (await get('/')).text()).includes('hero-robot.mp4') && (await fetch(`${B}/media/hero/${u3.name}`)).status === 404, 'bosh video: standart videoga qaytdi, eski fayl o‘chirildi');
+  // 14-bosqich: PLC monitoring sahifasi va kalit so'zlar
+  for (const [pre, word] of [['', 'PLC monitoring'], ['/ru', 'Мониторинг ПЛК'], ['/en', 'PLC monitoring']]) {
+    const r = await get(`${pre}/monitoring/`);
+    const mh = await r.text();
+    ok(r.status === 200 && mh.includes(word) && mh.includes('"FAQPage"') && mh.includes('id="mon-form"') && mh.includes('name="keywords"') && !/style="/.test(mh), `monitoring: ${pre || '/uz'} sahifa ochiladi`);
+  }
+  const hm = await (await get('/')).text();
+  ok(hm.includes('id="monitoring"') && hm.includes('href="/monitoring/"') && /name="keywords" content="[^"]*SCADA/.test(hm), 'monitoring: bosh sahifa bloki, menyu va kalit so‘zlar');
+  ok((await (await get('/sitemap.xml')).text()).includes('/monitoring/'), 'monitoring: sitemap’da bor');
+  ok(/name="keywords"/.test(await (await get('/support/')).text()) && /name="keywords"/.test(await (await get('/academy/')).text()), 'kalit so‘zlar: ichki sahifalarda');
 } catch (e) { console.error(e); fail++; } finally {
   try { sdb?.close(); } catch {}
   srv.kill(); mock.close(); fs.rmSync(DATA, { recursive: true, force: true });

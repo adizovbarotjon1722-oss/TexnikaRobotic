@@ -6,13 +6,14 @@ import { content4 } from './content4.mjs';
 import { content5 } from './content5.mjs';
 import { content7 } from './content7.mjs';
 import { content8 } from './content8.mjs';
+import { content9 } from './content9.mjs';
 
 export const LANGS = ['uz', 'ru', 'en'];
 
 const isObj = (o) => o && typeof o === 'object' && !Array.isArray(o);
 
 export function baseTexts(lang) {
-  return { ...content[lang], ...content2[lang], ...content3[lang], ...content4[lang], ...content5[lang], ...content7[lang], ...content8[lang] };
+  return { ...content[lang], ...content2[lang], ...content3[lang], ...content4[lang], ...content5[lang], ...content7[lang], ...content8[lang], ...content9[lang] };
 }
 
 // Barcha tahrirlanadigan matnlar: { "hero.h1a": "...", "faq.items.0.q": "..." }

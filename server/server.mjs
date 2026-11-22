@@ -19,6 +19,7 @@ import { createAccounts } from './accounts.mjs';
 import { createMedia } from './media.mjs';
 import { renderAccount, renderVideos } from '../src/template6.mjs';
 import { renderPlc, renderWarranty } from '../src/template4.mjs';
+import { renderMonitoring } from '../src/template7.mjs';
 import { renderSupport } from '../src/template5.mjs';
 import { track, stats } from './analytics.mjs';
 import { texts, flatten, baseTexts, LANGS } from '../src/i18n.mjs';
@@ -172,6 +173,7 @@ function routePage(req, res, p) {
   let mm;
   if (p === '/') return html(res, renderHome(lang, t, c, { portfolio: listPortfolio(), courses: listCourses(), errors: topErrors(10), reviews: reviews.listPublic(6), reviewSummary: reviews.summary() }, VER));
   if (ops.page(req, res, lang, p, t, c)) return;
+  if (p === '/monitoring/') return html(res, renderMonitoring(lang, t, c, VER));
   if (p === '/plc/') return html(res, renderPlc(lang, t, c, { cases: listPortfolio().filter((x) => x.cover === 'plc' || /plc|s7-|simatic|mitsubishi|omron|allen|modicon/i.test(`${x.brand} ${x.model}`)) }, VER));
   if (p === '/warranty/') return html(res, renderWarranty(lang, t, c, VER));
   if (p === '/support/') return html(res, renderSupport(lang, t, c, VER));
@@ -197,7 +199,7 @@ function routePage(req, res, p) {
 
 function sitemap(res) {
   const c = cfg();
-  const subs = ['', 'plc/', 'warranty/', 'support/', 'portfolio/', 'academy/', 'videos/', 'track/', ...ops.sitemapPaths(), ...listPortfolio().filter((p) => !p.sample).map((p) => `portfolio/${p.slug}/`), ...listCourses().map((x) => `academy/${x.slug}/`)];
+  const subs = ['', 'plc/', 'monitoring/', 'warranty/', 'support/', 'portfolio/', 'academy/', 'videos/', 'track/', ...ops.sitemapPaths(), ...listPortfolio().filter((p) => !p.sample).map((p) => `portfolio/${p.slug}/`), ...listCourses().map((x) => `academy/${x.slug}/`)];
   const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${subs.flatMap((s) => LANGS.map((l) => `  <url><loc>${esc(c.domain + pageUrl(l, s))}</loc><lastmod>${now().slice(0, 10)}</lastmod>${LANGS.map((a) => `<xhtml:link rel="alternate" hreflang="${a}" href="${esc(c.domain + pageUrl(a, s))}"/>`).join('')}<xhtml:link rel="alternate" hreflang="x-default" href="${esc(c.domain + pageUrl('uz', s))}"/></url>`)).join('\n')}\n</urlset>\n`;
   send(res, 200, xml, MIME['.xml'], { 'Cache-Control': 'public, max-age=3600' });
 }

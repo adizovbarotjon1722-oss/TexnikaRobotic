@@ -6,6 +6,7 @@ import { brands } from './content.mjs';
 import { LANGS, fmt } from './i18n.mjs';
 import { homePlc, homeWarranty, homeDowntime } from './template4.mjs';
 import { megaMenu, homeSupport, homeQuality } from './template5.mjs';
+import { homeMonitoring } from './template7.mjs';
 
 export { LANGS };
 export const langPrefix = (l) => (l === 'uz' ? '' : `/${l}`);
@@ -180,7 +181,7 @@ export function secHead(eyebrow, title, lead, id, extra = '', art = '') {
 export function aiFormFor(t, cfg, o = {}) { return aiForm(t, cfg, o); }
 
 function aiForm(t, cfg, o = {}) {
-  const serviceOptions = [...t.services.items.map((s) => s.title), ...(t.plc?.svc ? [t.plc.svc] : []), ...t.extra.items.map((s) => s.title), t.contact.other];
+  const serviceOptions = [...t.services.items.map((s) => s.title), ...(t.plc?.svc ? [t.plc.svc] : []), ...(t.mon?.svc ? [t.mon.svc] : []), ...t.extra.items.map((s) => s.title), t.contact.other];
   const c = t.contact;
   const ai = t.ai;
   return `
@@ -287,6 +288,7 @@ function home(t, lang, cfg, data, mode) {
   ${homeQuality(t)}
 
   ${homePlc(t, lang, cfg, mode)}
+  ${homeMonitoring(t, lang, mode)}
 
   <section class="brands" aria-labelledby="brands-title">
     <div class="wrap"><h2 id="brands-title" class="brands-title">${esc(t.brandsBlock.title)}</h2></div>
@@ -602,7 +604,7 @@ export function renderPortfolioList(lang, t, cfg, items, assetVer) {
     { '@type': 'CollectionPage', name: t.meta2.portfolioTitle, url: cfg.domain + url(lang, 'portfolio/'), inLanguage: lang, about: { '@id': cfg.domain + '/#org' } },
     crumbsLd([[cfg.brand, cfg.domain + url(lang, '')], [t.portfolio.title, cfg.domain + url(lang, 'portfolio/')]])
   ] };
-  return layout({ lang, t, cfg, sub: 'portfolio/', title: t.meta2.portfolioTitle, description: t.meta2.portfolioDesc, body: portfolioList(t, lang, items), jsonLd, assetVer });
+  return layout({ lang, t, cfg, sub: 'portfolio/', title: t.meta2.portfolioTitle, description: t.meta2.portfolioDesc, keywords: t.meta9.kw.portfolio, body: portfolioList(t, lang, items), jsonLd, assetVer });
 }
 
 export function renderPortfolioItem(lang, t, cfg, p, assetVer) {
@@ -613,16 +615,16 @@ export function renderPortfolioItem(lang, t, cfg, p, assetVer) {
     { '@type': 'Article', headline: d.title[lang], description: desc, inLanguage: lang, url: cfg.domain + url(lang, sub), author: { '@type': 'Person', name: cfg.engineerName }, publisher: { '@id': cfg.domain + '/#org' }, ...(p.images?.length ? { image: p.images.map((i) => `${cfg.domain}/media/${i}`) } : {}), about: `${p.brand} ${p.model || ''}`.trim() },
     crumbsLd([[cfg.brand, cfg.domain + url(lang, '')], [t.portfolio.title, cfg.domain + url(lang, 'portfolio/')], [d.title[lang], cfg.domain + url(lang, sub)]])
   ] };
-  return layout({ lang, t, cfg, sub, title: `${d.title[lang]} | ${cfg.brand}`, description: desc, body: portfolioItem(t, lang, p), jsonLd, assetVer, noindex: !!p.sample });
+  return layout({ lang, t, cfg, sub, title: `${d.title[lang]} | ${cfg.brand}`, description: desc, keywords: [p.brand, p.model && `${p.brand || ''} ${p.model}`.trim(), t.meta9.kw.portfolio].filter(Boolean).join(', '), body: portfolioItem(t, lang, p), jsonLd, assetVer, noindex: !!p.sample });
 }
 
 export function renderTrack(lang, t, cfg, assetVer) {
-  return layout({ lang, t, cfg, sub: 'track/', title: t.meta2.trackTitle, description: t.meta2.trackDesc, body: trackPage(t, lang), assetVer });
+  return layout({ lang, t, cfg, sub: 'track/', title: t.meta2.trackTitle, description: t.meta2.trackDesc, keywords: t.meta9.kw.track, body: trackPage(t, lang), assetVer });
 }
 
 export function renderAcademyList(lang, t, cfg, courses, assetVer) {
   const jsonLd = { '@context': 'https://schema.org', '@graph': courses.map((c) => ({ '@type': 'Course', name: c.data.title[lang], description: c.data.summary[lang], inLanguage: lang, url: cfg.domain + url(lang, `academy/${c.slug}/`), provider: { '@type': 'Organization', name: cfg.brand, sameAs: cfg.domain + '/' } })) };
-  return layout({ lang, t, cfg, sub: 'academy/', title: t.meta2.academyTitle, description: t.meta2.academyDesc, body: academyList(t, lang, courses), jsonLd, assetVer });
+  return layout({ lang, t, cfg, sub: 'academy/', title: t.meta2.academyTitle, description: t.meta2.academyDesc, keywords: t.meta9.kw.academy, body: academyList(t, lang, courses), jsonLd, assetVer });
 }
 
 export function renderAcademyCourse(lang, t, cfg, c, lessons, assetVer) {

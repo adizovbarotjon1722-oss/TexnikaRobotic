@@ -7,6 +7,7 @@ export const content5 = {
       items: {
         services: ['Xizmatlar', 'Robotlar, Xitoy va Germaniya uskunalari, elektronika'],
         plc: ['PLC ta’miri', 'CPU STOP, aloqa, I/O modullar, dastur'],
+        monitoring: ['PLC monitoring', 'Liniya holati, OEE, avariyalar Telegramda'],
         ai: ['AI tashxis', 'Rasm va xato kodi bo‘yicha dastlabki tashxis'],
         support: ['Qo‘llab-quvvatlash', 'Masofaviy ulanish, avariya chaqiruvi'],
         errors: ['Xato kodlari', 'KUKA, ABB, FANUC va drayverlar'],
@@ -68,6 +69,7 @@ export const content5 = {
       items: {
         services: ['Услуги', 'Роботы, китайское и немецкое оборудование, электроника'],
         plc: ['Ремонт ПЛК', 'CPU STOP, связь, модули I/O, программа'],
+        monitoring: ['Мониторинг ПЛК', 'Состояние линии, OEE, аварии в Telegram'],
         ai: ['AI-диагностика', 'Предварительная диагностика по фото и коду ошибки'],
         support: ['Поддержка', 'Удалённое подключение, аварийный вызов'],
         errors: ['Коды ошибок', 'KUKA, ABB, FANUC и приводы'],
@@ -129,6 +131,7 @@ export const content5 = {
       items: {
         services: ['Services', 'Robots, Chinese and German equipment, electronics'],
         plc: ['PLC repair', 'CPU STOP, networks, I/O modules, programs'],
+        monitoring: ['PLC monitoring', 'Line status, OEE, alarms in Telegram'],
         ai: ['AI diagnosis', 'First diagnosis from a photo and fault code'],
         support: ['Support', 'Remote access, emergency call-out'],
         errors: ['Fault codes', 'KUKA, ABB, FANUC and drives'],

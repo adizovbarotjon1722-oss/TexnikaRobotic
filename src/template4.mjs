@@ -125,7 +125,7 @@ export function renderPlc(lang, t, cfg, { cases = [] } = {}, ver) {
     { '@type': 'FAQPage', mainEntity: p.faq.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) },
     crumbsLd([[cfg.brand, cfg.domain + url(lang, '')], [t.nav5.plc, pageUrl]])
   ] };
-  return layout({ lang, t, cfg, sub, title: t.meta5.plcTitle, description: t.meta5.plcDesc, keywords: 'PLC, Siemens S7-1200, S7-1500, S7-300, Mitsubishi FX, Omron, Allen-Bradley, Profinet, ремонт ПЛК, PLC ta’miri', body, jsonLd, assetVer: ver });
+  return layout({ lang, t, cfg, sub, title: t.meta5.plcTitle, description: t.meta5.plcDesc, keywords: 'PLC ta’miri, PLC remonti, PLC dasturlash, ремонт ПЛК, программирование ПЛК, восстановление программы ПЛК, PLC repair, PLC programming, Siemens S7-1200, S7-1500, S7-300, S7-400, LOGO!, ET 200, TIA Portal, Step 7, Mitsubishi FX, Mitsubishi Q, Omron CP1, Omron NJ, Allen-Bradley CompactLogix, Delta DVP, Schneider Modicon, Profinet, Profibus, CPU STOP, SF BF xatosi, ошибка SF BF, HMI, PLC monitoring, мониторинг ПЛК', body, jsonLd, assetVer: ver });
 }
 
 /* ---------- /warranty/ sahifasi ---------- */
@@ -158,5 +158,5 @@ export function renderWarranty(lang, t, cfg, ver) {
     { '@type': 'WebPage', name: t.meta5.warrantyTitle, url: pageUrl, inLanguage: lang, about: { '@id': cfg.domain + '/#org' } },
     crumbsLd([[cfg.brand, cfg.domain + url(lang, '')], [w.title, pageUrl]])
   ] };
-  return layout({ lang, t, cfg, sub, title: t.meta5.warrantyTitle, description: t.meta5.warrantyDesc, body, jsonLd, assetVer: ver });
+  return layout({ lang, t, cfg, sub, title: t.meta5.warrantyTitle, description: t.meta5.warrantyDesc, keywords: t.meta9.kw.warranty, body, jsonLd, assetVer: ver });
 }

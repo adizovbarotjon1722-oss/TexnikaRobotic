@@ -6,6 +6,7 @@ import { sart } from './art.mjs';
 const HUB = {
   services: ['#services', '#services', 'gears'],
   plc: ['plc/', '#plc', 'plcmini'],
+  monitoring: ['monitoring/', '#monitoring', 'factory'],
   ai: ['#contact', '#contact', 'scan'],
   support: ['support/', '#support', 'headset'],
   errors: ['errors/', '#errors', 'alarm'],
@@ -78,7 +79,7 @@ export function renderSupport(lang, t, cfg, ver) {
     { '@type': 'Service', name: s.title, serviceType: 'Technical support', description: t.meta6.supportDesc, url: pageUrl, inLanguage: lang, provider: { '@id': cfg.domain + '/#org' }, areaServed: { '@type': 'Country', name: 'Uzbekistan' } },
     { '@type': 'FAQPage', mainEntity: s.faq.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) }
   ] };
-  return layout({ lang, t, cfg, sub: 'support/', title: t.meta6.supportTitle, description: t.meta6.supportDesc, body, jsonLd, assetVer: ver });
+  return layout({ lang, t, cfg, sub: 'support/', title: t.meta6.supportTitle, description: t.meta6.supportDesc, keywords: t.meta9.kw.support, body, jsonLd, assetVer: ver });
 }
 
 // Bosh sahifa: sifat standarti, ustuvorliklar, javob muddatlari va sifat nazorati
