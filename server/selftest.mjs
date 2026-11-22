@@ -67,8 +67,8 @@ try {
   ok(!!csrf && lr.headers.get('set-cookie').includes('HttpOnly'), 'admin kirish');
   const st = await (await get('/admin/api/stats?days=7', { Cookie: cookie })).json();
   ok(st.totals.requests === 1, 'analitika');
-  ok((await post('/admin/api/texts', { lang: 'en', key: 'v2.hero.h1a', value: 'Selftest heading' }, { Cookie: cookie })).status === 403, 'CSRF tokensiz rad etiladi');
-  ok((await post('/admin/api/texts', { lang: 'en', key: 'v2.hero.h1a', value: 'Selftest heading' }, { Cookie: cookie, 'X-CSRF': csrf })).status === 200, 'matn tahrirlandi');
+  ok((await post('/admin/api/texts', { lang: 'en', key: 'v3.hero.h1', value: 'Selftest heading' }, { Cookie: cookie })).status === 403, 'CSRF tokensiz rad etiladi');
+  ok((await post('/admin/api/texts', { lang: 'en', key: 'v3.hero.h1', value: 'Selftest heading' }, { Cookie: cookie, 'X-CSRF': csrf })).status === 200, 'matn tahrirlandi');
   ok((await (await get('/en/')).text()).includes('Selftest heading'), 'tahrir saytda ko‘rinadi');
   const list = await (await get('/admin/api/requests', { Cookie: cookie })).json();
   ok((await post(`/admin/api/requests/${list[0].id}`, { status: 'scheduled', note: 'Tomorrow 10:00' }, { Cookie: cookie, 'X-CSRF': csrf })).status === 200, 'ariza holati yangilandi');
@@ -77,7 +77,7 @@ try {
 
   /* 4-bosqich: raqam faqat arizadan keyin, akademiya */
   const home = await (await get('/')).text();
-  ok(!home.includes('707 99 17') && !home.includes('tel:+998997079917') && home.includes('ph-lock'), 'raqam sahifada yashirin');
+  ok(home.includes('tel:+998997079917') && home.includes('"telephone"'), 'raqam standart holatda ochiq (qo‘ng‘iroq tugmasi)');
   const cr4 = await (await post('/api/requests', { lang: 'uz', name: 'Raqam Sinov', phone: '+998901234500', message: 'Raqam ochilishini sinash uchun ariza', consent: true })).json();
   ok(cr4.contact?.phone && cr4.contact.phone.includes('707'), 'ariza yuborilgach raqam ochiladi');
   const { DatabaseSync } = await import('node:sqlite');
@@ -349,11 +349,14 @@ try {
   const rp = await (await get(`/doc/${rdoc.token}/`)).text();
   ok(rp.includes('Servis hisoboti') && rp.includes('Kabel uzilgan') && rp.includes('1 125 000') && rp.includes('Bir million bir yuz yigirma besh ming so‘m') && rp.includes('class="doc-stamp"') && !/style="/.test(rp), 'servis hisoboti sahifasi: chegirma, summa so‘z bilan, muhr');
   // 16-bosqich: yangi tuzilma, Ustalar, baholash
-  for (const [pth, word] of [['/robots/', 'RAPID'], ['/ru/documents/', 'журнал'], ['/en/team/', 'Engineers'], ['/en/', 'People who know why']]) {
+  for (const [pth, word] of [['/robots/', 'RAPID'], ['/ru/documents/', 'журнал'], ['/en/team/', 'Engineers'], ['/en/', 'Ask for a price']]) {
     const r = await get(pth); const x = await r.text();
     ok(r.status === 200 && x.includes(word) && !/style="/.test(x), `yangi sahifa ${pth}`);
   }
   ok((await (await get('/sitemap.xml')).text()).includes('/ru/robots/'), 'sitemap: yangi sahifalar');
+  ok((await post('/api/callback', { phone: '12', lang: 'uz' })).status === 400, 'qayta qo‘ng‘iroq: noto‘g‘ri raqam rad etiladi');
+  { const r = await post('/api/callback', { phone: '+998 90 111 22 33', urgent: true, lang: 'ru' }); const d = await r.json(); ok(r.status === 201 && /^TX-/.test(d.code), 'qayta qo‘ng‘iroq: ariza yaratildi'); }
+  { const hm = await (await get('/')).text(); ok(hm.includes('id="cb-form"') && hm.includes('class="m-bar"') && hm.includes('cat-table'), 'bosh sahifa: qo‘ng‘iroq formasi, katalog va mobil panel'); }
   ok((await post('/api/feedback', { lang: 'uz' })).status === 400, 'baho: bo‘sh baho rad etiladi');
   ok((await post('/api/feedback', { site: 5, service: 4, text: 'Juda qulay sayt', name: 'Sinov', lang: 'uz' })).status === 201, 'baho: sayt va xizmat bahosi qabul qilindi');
   const fbl = await (await get('/admin/api/feedback', { Cookie: cookie })).json();

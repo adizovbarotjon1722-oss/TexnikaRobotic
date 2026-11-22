@@ -1,8 +1,20 @@
 // 16-bosqich: aniq maqsadli bosh sahifa (7 blok), Ustalar, Robot servisi, Elektron hujjatlar, baholash
-import { layout, esc, icon, url, secHead, aiFormFor, portfolioCard, heroVideo, pageHero, LANGS } from './template.mjs';
+import { layout, esc, icon, url, secHead, aiFormFor, portfolioCard, heroVideo, pageHero, telHref, tgUser, LANGS } from './template.mjs';
 import { homeMonitoring } from './template7.mjs';
 import { fmt } from './i18n.mjs';
 
+const CAT_HREF = { plc: 'plc/', robots: 'robots/', to: '', training: 'academy/', mon: 'monitoring/', docs: 'documents/' };
+function callbackForm(cb, lang) {
+  return `<form class="cb-form" id="cb-form" novalidate data-lang="${lang}" data-ok="${esc(cb.ok)}" data-err="${esc(cb.err)}" data-err-phone="${esc(cb.errPhone)}">
+    <h2 class="cb-title">${esc(cb.title)}</h2><p class="cb-lead">${esc(cb.lead)}</p>
+    <div class="cb-row"><label class="vh" for="cb-phone">${esc(cb.phone)}</label><input id="cb-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="+998 __ ___ __ __" required>
+      <button class="btn btn-primary" type="submit">${esc(cb.send)}</button></div>
+    <label class="cb-urgent"><input type="checkbox" name="urgent"> <span>${esc(cb.urgent)}</span></label>
+    <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <p class="cb-note">${esc(cb.consent)}</p>
+    <p class="cb-msg" role="status" aria-live="polite"></p>
+  </form>`;
+}
 const DIR_HREF = { training: 'academy/', mon: 'monitoring/', robots: 'robots/', docs: 'documents/' };
 const initials = (n) => String(n || '').split(/\s+/).filter(Boolean).slice(0, 2).map((x) => x[0]).join('').toUpperCase();
 const lines = (s) => String(s || '').split('\n').map((x) => x.trim()).filter(Boolean);
@@ -54,48 +66,49 @@ export function home2(t, lang, cfg, data) {
   const rs = data.reviewSummary || {};
   const quotes = [...(data.reviews || []), ...(data.feedbackPublic || [])].slice(0, 3);
   const r = v.trust;
+  const v3 = t.v3, h = v3.hero, c = v3.cat, tg = tgUser(cfg);
   return `<main id="main" class="v2">
-  <section class="hx" aria-labelledby="hero-title">
+  <section class="hx hx3" aria-labelledby="hero-title">
     <div class="hx-bg" aria-hidden="true"></div>
     <div class="wrap hx-in">
       <div class="hx-copy">
-        <h1 id="hero-title"><span class="h1k">${esc(v.hero.h1k)}</span> <span class="h1a">${esc(v.hero.h1a)}</span> <span class="h1b">${esc(v.hero.h1b)}</span></h1>
-        <p class="lead">${esc(v.hero.lead)}</p>
+        <h1 id="hero-title"><span class="h1k">${esc(h.h1k)}</span> <span class="h1a">${esc(h.h1)}</span></h1>
+        <p class="lead">${esc(h.lead)}</p>
         <div class="cta-row">
-          <a class="btn btn-primary btn-lg" href="#contact" data-ev="cta_hero">${esc(v.hero.cta1)}${icon('arrow')}</a>
-          <a class="btn btn-ghost btn-lg" href="${url(lang, 'academy/')}" data-ev="cta_courses">${icon('cap')}${esc(v.hero.cta2)}</a>
+          <a class="btn btn-primary btn-lg" href="#contact" data-ev="cta_hero">${esc(h.order)}${icon('arrow')}</a>
+          ${cfg.phoneOpen ? `<a class="btn btn-ghost btn-lg hx-call" href="${telHref(cfg.phone)}" data-ev="cta_call">${icon('phone')}<span>${esc(cfg.phone)}</span></a>` : `<a class="btn btn-ghost btn-lg hx-call" href="#cb-form" data-ev="cta_call">${icon('phone')}<span>${esc(v3.cb.title)}</span></a>`}
+          ${tg ? `<a class="btn btn-ghost btn-lg hx-tg" href="https://t.me/${esc(tg)}" target="_blank" rel="noopener noreferrer" data-ev="tg_hero">${icon('send')}<span>${esc(h.tg)}</span></a>` : ''}
         </div>
-        <ul class="hx-dirs">${v.dir.items.map((d) => `<li><a href="${url(lang, DIR_HREF[d.key])}">${icon(d.icon)}<span>${esc(d.title)}</span></a></li>`).join('')}</ul>
+        <dl class="hx-facts">${h.facts.map(([k, x]) => `<div><dt>${esc(k)}</dt><dd>${esc(x)}</dd></div>`).join('')}</dl>
       </div>
-      <figure class="hx-screen" aria-hidden="true">
-        <div class="hx-bar"><i></i><i></i><i></i><span>${esc(cfg.brand)} · Live</span></div>
-        <div class="hx-media">${heroVideo('prod', cfg)}</div>
-        <ul class="hx-tele">${v.hero.tele.map(([k, x], i) => `<li class="tl-${i}"><span>${esc(k)}</span><b>${esc(x)}</b></li>`).join('')}</ul>
-      </figure>
+      <div class="hx-side">
+        <figure class="hx-screen" aria-hidden="true">
+          <div class="hx-bar"><i></i><i></i><i></i><span>${esc(cfg.brand)} · Live</span></div>
+          <div class="hx-media">${heroVideo('prod', cfg)}</div>
+        </figure>
+        ${callbackForm(v3.cb, lang)}
+      </div>
     </div>
   </section>
 
-  ${on('directions') ? `<section class="section dx" id="services" aria-labelledby="dx-title"><div class="wrap">
-    ${secHead(v.dir.eyebrow, v.dir.title, '', 'dx-title')}
-    <ol class="dx-grid">${v.dir.items.map((d, i) => `<li class="dx-card reveal">
-      <a href="${url(lang, DIR_HREF[d.key])}" class="dx-link" data-ev="dir_${d.key}">
-        <span class="dx-n">0${i + 1}</span><span class="dx-ic">${icon(d.icon)}</span>
-        <h3>${esc(d.title)}</h3><p>${esc(d.text)}</p>
-        <ul>${d.points.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
-        <span class="dx-more">${esc(v.dir.more)}${icon('arrow')}</span>
-      </a></li>`).join('')}</ol>
-  </div></section>` : ''}
+  <section class="tz" aria-label="${esc(v3.trust.label)}"><div class="wrap">
+    <ul class="tz-list">${v3.trust.items.map(([ic, a, x]) => `<li>${icon(ic)}<div><b>${esc(a)}</b><span>${esc(x)}</span></div></li>`).join('')}</ul>
+    <p class="tz-brands"><span>${esc(v3.trust.brandsLabel)}</span>${v3.trust.brands.map((x) => `<b>${esc(x)}</b>`).join('')}</p>
+  </div></section>
 
-  ${on('monitoring') ? homeMonitoring(t, lang, 'prod') : ''}
-
-  ${on('training') ? `<section class="section tx" id="training" aria-labelledby="tx-title"><div class="wrap">
-    <div class="sec-head-row">${secHead(v.train.eyebrow, v.train.title, v.train.lead, 'tx-title')}<a class="btn btn-ghost" href="${url(lang, 'academy/')}">${esc(v.train.more)}${icon('arrow')}</a></div>
-    <ol class="tx-list">${v.train.tracks.map((k, i) => `<li class="tx-row reveal">
-      <span class="tx-n mono">${String(i + 1).padStart(2, '0')}</span>
-      <div class="tx-main"><h3>${esc(k.name)}</h3><ul>${k.points.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>
-      <dl class="tx-meta"><div><dt>${esc(v.train.level)}</dt><dd>${esc(k.level)}</dd></div><div><dt>${esc(v.train.dur)}</dt><dd>${esc(k.dur)}</dd></div></dl>
-    </li>`).join('')}</ol>
-    <div class="tx-foot"><ul class="tx-formats">${v.train.formats.map((x) => `<li>${icon('check')}${esc(x)}</li>`).join('')}</ul><a class="btn btn-primary" href="#contact" data-svc="${esc(v.train.eyebrow)}" data-ev="cta_training">${esc(v.train.cta)}${icon('arrow')}</a></div>
+  ${on('directions') ? `<section class="section cat" id="services" aria-labelledby="cat-title"><div class="wrap">
+    ${secHead(c.eyebrow, c.title, c.lead, 'cat-title')}
+    <div class="cat-table" role="table" aria-label="${esc(c.eyebrow)}">
+      <div class="cat-row cat-head" role="row">${c.head.map((x) => `<span role="columnheader">${esc(x)}</span>`).join('')}<span aria-hidden="true"></span></div>
+      ${c.items.map((it) => `<div class="cat-row reveal" role="row">
+        <span role="cell" class="cat-name">${CAT_HREF[it.key] ? `<a href="${url(lang, CAT_HREF[it.key])}">${esc(it.name)}</a>` : esc(it.name)}</span>
+        <span role="cell" class="cat-text">${esc(it.text)}</span>
+        <span role="cell" class="cat-price">${esc(it.price)}</span>
+        <span role="cell" class="cat-act"><a class="btn btn-ghost btn-sm" href="#contact" data-svc="${esc(it.name)}" data-ev="cat_${it.key}">${esc(c.ask)}</a></span>
+      </div>`).join('')}
+    </div>
+    <h3 class="cat-sub">${esc(c.stepsTitle)}</h3>
+    <ol class="steps steps-5 cat-steps">${c.steps.map(([a, x], i) => `<li class="step reveal"><span class="step-n">0${i + 1}</span><h3>${esc(a)}</h3><p>${esc(x)}</p></li>`).join('')}</ol>
   </div></section>` : ''}
 
   ${on('team') && (team.length || pf.length) ? `<section class="section section-alt tmx" id="team" aria-labelledby="tm-title"><div class="wrap">
@@ -120,6 +133,18 @@ export function home2(t, lang, cfg, data) {
     </div>
   </div></section>` : ''}
 
+  ${on('training') ? `<section class="section tx" id="training" aria-labelledby="tx-title"><div class="wrap">
+    <div class="sec-head-row">${secHead(v.train.eyebrow, v.train.title, v.train.lead, 'tx-title')}<a class="btn btn-ghost" href="${url(lang, 'academy/')}">${esc(v.train.more)}${icon('arrow')}</a></div>
+    <ol class="tx-list">${v.train.tracks.map((k, i) => `<li class="tx-row reveal">
+      <span class="tx-n mono">${String(i + 1).padStart(2, '0')}</span>
+      <div class="tx-main"><h3>${esc(k.name)}</h3><ul>${k.points.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>
+      <dl class="tx-meta"><div><dt>${esc(v.train.level)}</dt><dd>${esc(k.level)}</dd></div><div><dt>${esc(v.train.dur)}</dt><dd>${esc(k.dur)}</dd></div></dl>
+    </li>`).join('')}</ol>
+    <div class="tx-foot"><ul class="tx-formats">${v.train.formats.map((x) => `<li>${icon('check')}${esc(x)}</li>`).join('')}</ul><a class="btn btn-primary" href="#contact" data-svc="${esc(v.train.eyebrow)}" data-ev="cta_training">${esc(v.train.cta)}${icon('arrow')}</a></div>
+  </div></section>` : ''}
+
+  ${on('monitoring') ? homeMonitoring(t, lang, 'prod') : ''}
+
   <section class="section contact" id="contact" aria-labelledby="contact-title">
     <div class="wrap contact-in">
       <div class="contact-copy reveal">
@@ -127,6 +152,7 @@ export function home2(t, lang, cfg, data) {
         <h2 id="contact-title">${esc(v.contact.title)}</h2>
         <p class="sec-lead">${esc(t.ai.lead)}</p>
         <p class="hours"><span class="dot" aria-hidden="true"></span>${esc(t.contact.hours)}</p>
+        <p class="area"><b>${esc(t.v3.area.title)}:</b> ${esc(t.v3.area.text)}</p>
         ${cfg.botUsername ? `<a class="tg-card" href="https://t.me/${esc(cfg.botUsername)}" target="_blank" rel="noopener noreferrer" data-ev="tg_bot">${icon('send')}<span><b>${esc(t.v7?.tgHero || 'Telegram')}</b><small>@${esc(cfg.botUsername)}</small></span></a>` : ''}
       </div>
       ${aiFormFor(t, cfg)}

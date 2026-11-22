@@ -44,7 +44,7 @@ if (firstPw) console.log(`\n  ADMIN PAROL (bir marta ko'rsatiladi, saqlab qo'yin
 /* ---------- Sozlamalar va matnlar ---------- */
 const fileCfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'site.config.json'), 'utf8'));
 const SETTING_KEYS = ['brand', 'engineerName', 'phone', 'whatsapp', 'telegram', 'email', 'city_uz', 'city_ru', 'city_en', 'responseHours', 'domain',
-  'company_legal', 'company_address', 'company_inn', 'company_bank', 'company_account', 'company_mfo', 'googleVerify', 'yandexVerify', 'admin_tg_ids', 'warrantyMonths', 'partsMonths'];
+  'company_legal', 'company_address', 'company_inn', 'company_bank', 'company_account', 'company_mfo', 'googleVerify', 'yandexVerify', 'admin_tg_ids', 'warrantyMonths', 'partsMonths', 'phoneMode'];
 const EXTRA_KEYS = SETTING_KEYS.slice(11);
 const HOME_SECTIONS = ['directions', 'monitoring', 'training', 'team', 'trust'];
 let BOT_USERNAME = '';
@@ -66,6 +66,7 @@ function cfg() {
   if (c.yandexFile) c.yandexVerify = '';
   c.warrantyMonths = parseInt(c.warrantyMonths, 10) || fileCfg.warrantyMonths || 3;
   c.partsMonths = parseInt(c.partsMonths, 10) || fileCfg.partsMonths || 12;
+  c.phoneOpen = c.phoneMode !== 'lock';
   c.botUsername = BOT_USERNAME;
   // Admin yuklagan bosh sahifa videosi (bo'lmasa standart video)
   const hv = heroOf();
@@ -291,7 +292,7 @@ function createRequest(r, images, { source = 'web', equipment = null, tgId = nul
     r.equipment = [equipment.brand, equipment.model, equipment.serial ? `S/N ${equipment.serial}` : '', equipment.location].filter(Boolean).join(' · ').slice(0, 120);
     if (!r.company && equipment.customer_id) r.company = db.prepare('SELECT company FROM customers WHERE id = ?').get(equipment.customer_id)?.company || '';
   }
-  r.priority = r.ai ? r.ai.priority : 'normal';
+  r.priority = r.ai ? r.ai.priority : (PRIORITIES.includes(r.priority) ? r.priority : 'normal');
   r.source = source;
   let code;
   for (let i = 0; i < 5; i++) { code = randCode(); if (!db.prepare('SELECT 1 FROM requests WHERE code = ?').get(code)) break; }
@@ -307,6 +308,20 @@ function createRequest(r, images, { source = 'web', equipment = null, tgId = nul
     .then((ok) => ok && db.prepare('UPDATE requests SET tg_ok = 1 WHERE id = ?').run(id))
     .catch((e) => console.error('Telegram xato:', e.message));
   return { id, code };
+}
+
+// Qayta qo'ng'iroq: faqat telefon raqami (va «hozir to'xtagan» belgisi) bilan tezkor ariza
+async function apiCallback(req, res, ip) {
+  if (!rateLimit(`cb:${ip}`, 4, 3600e3) || !rateLimit('req:global', 200, 3600e3)) return json(res, 429, { error: 'rate' });
+  const b = await readJson(req, 8 * 1024);
+  if (b.website) return json(res, 200, { ok: true, code: randCode() });
+  const lang = LANGS.includes(b.lang) ? b.lang : 'uz';
+  const phone = clean(b.phone, 20), digits = phone.replace(/\D/g, '');
+  if (digits.length < 9 || digits.length > 15) return json(res, 400, { error: 'phone' });
+  const urgent = b.urgent === true;
+  const tt = T(lang).v3.cb;
+  const out = createRequest({ lang, name: clean(b.name, 80) || '—', phone, service: clean(b.service, 120) || (lang === 'ru' ? 'Обратный звонок' : lang === 'en' ? 'Call back' : 'Qayta qo‘ng‘iroq'), equipment: '', message: urgent ? tt.msgUrgent : tt.msg, priority: urgent ? 'critical' : 'high' }, [], { source: 'callback' });
+  return json(res, 201, { ok: true, code: out.code });
 }
 
 function apiTrack(req, res, ip, code) {
@@ -599,6 +614,7 @@ async function adminApi(req, res, p, sess) {
       if (k === 'email' && v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return json(res, 400, { error: 'email' });
       if (k === 'googleVerify' || k === 'yandexVerify') v = v.replace(/[^A-Za-z0-9_.-]/g, '');
       if (k === 'warrantyMonths' || k === 'partsMonths') v = v ? String(Math.min(Math.max(parseInt(v, 10) || 3, 1), 60)) : '';
+      if (k === 'phoneMode') v = v === 'lock' ? 'lock' : 'open';
       if (k === 'admin_tg_ids') v = v.split(/[\s,]+/).filter((x) => /^-?\d{3,20}$/.test(x)).join(',');
       setSetting(k, v);
     }
@@ -689,6 +705,7 @@ async function handle(req, res) {
     if (method === 'POST' && !sameOrigin(req)) return json(res, 403, { error: 'origin' });
     if (p === '/api/diagnose' && method === 'POST') return apiDiagnose(req, res, ip);
     if (p === '/api/requests' && method === 'POST') return apiCreateRequest(req, res, ip);
+    if (p === '/api/callback' && method === 'POST') return apiCallback(req, res, ip);
     if ((m = p.match(/^\/api\/track\/([A-Za-z0-9-]{1,20})$/)) && method === 'GET') return apiTrack(req, res, ip, m[1]);
     if (p === '/api/e' && method === 'POST') return apiEvent(req, res, ip);
     if ((m = p.match(/^\/api\/warranty\/([A-Za-z0-9-]{1,20})$/)) && method === 'GET') return warranty.api(req, res, ip, m[1]);

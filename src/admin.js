@@ -1198,7 +1198,8 @@
     const form = h('form', { class: 'card', onsubmit: async (e) => {
       e.preventDefault(); save.disabled = true;
       try { await api('/settings', { method: 'POST', body: Object.fromEntries(Object.entries(inputs).map(([k, i]) => [k, i.value.trim()])) }); toast('Saqlandi'); } catch (er) { toast(errText(er), 'bad'); } finally { save.disabled = false; }
-    } }, h('h2', { text: 'Aloqa va brend' }), h('div', { class: 'grid-f' }, F.map(([k, l]) => { inputs[k] = h('input', { type: k === 'responseHours' ? 'number' : 'text', value: st[k] ?? '' }); return field(l, inputs[k]); })),
+    } }, h('h2', { text: 'Aloqa va brend' }), h('div', { class: 'grid-f' }, F.map(([k, l]) => { inputs[k] = h('input', { type: k === 'responseHours' ? 'number' : 'text', value: st[k] ?? '' }); return field(l, inputs[k]); }),
+        (() => { const sel = h('select', {}, h('option', { value: 'open', text: 'Ochiq: hamma ko‘radi va bir bosishda qo‘ng‘iroq qiladi' }), h('option', { value: 'lock', text: 'Yopiq: ariza qoldirgandan keyin ochiladi' })); sel.value = st.phoneMode === 'lock' ? 'lock' : 'open'; inputs.phoneMode = sel; return field('Telefon raqami saytda', sel, 'Ochiq rejim ko‘proq qo‘ng‘iroq olib keladi'); })()),
       h('h2', { text: 'Rekvizitlar (taklif va dalolatnomada)' }), h('div', { class: 'grid-f' }, F2.map(([k, l]) => { inputs[k] = h('input', { type: 'text', value: st[k] ?? '' }); return field(l, inputs[k]); })),
       h('h2', { text: 'Google, Yandex va Telegram' }), h('div', { class: 'grid-f' }, F3.map(([k, l, hint]) => { inputs[k] = h('input', { type: 'text', value: st[k] ?? '' }); return field(l, inputs[k], hint); })),
       h('h2', { text: 'Kafolat' }), h('div', { class: 'grid-f' }, F4.map(([k, l, hint]) => { inputs[k] = h('input', { type: 'number', min: '1', max: '60', value: st[k] ?? '' }); return field(l, inputs[k], hint); })), save);

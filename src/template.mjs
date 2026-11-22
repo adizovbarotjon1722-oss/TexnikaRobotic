@@ -136,7 +136,17 @@ function header(t, lang, sub, mode, cfg) {
 export const telHref = (p) => `tel:${String(p).replace(/[^\d+]/g, '')}`;
 // Telefon raqami HTMLda to'liq chiqmaydi: ariza yuborilgach app.js serverdan olib ochadi
 export const phoneMask = (p) => String(p).split(' ').map((g, i) => (i < 2 ? g : g.replace(/\d/g, '•'))).join(' ');
-export const phoneLock = (cfg, t, ev, cls = '', href = '#contact') => `<a class="ph-lock ${cls}" href="${href}" data-ph data-ev="${ev}" title="${esc(t.lock.hint)}"><span class="ph-num">${esc(phoneMask(cfg.phone))}</span><span class="ph-key" aria-hidden="true">${icon('lock')}</span></a>`;
+// Telegram havolasi: bot yoki haqiqiy username (namuna «username» bo'lsa ko'rsatilmaydi)
+export const tgUser = (cfg) => cfg.botUsername || (cfg.telegram && cfg.telegram !== 'username' ? cfg.telegram : '');
+export const phoneLock = (cfg, t, ev, cls = '', href = '#contact') => cfg.phoneOpen ? `<a class="ph-lock is-open ${cls}" href="${telHref(cfg.phone)}" data-ev="${ev}"><span class="ph-num">${esc(cfg.phone)}</span></a>` : `<a class="ph-lock ${cls}" href="${href}" data-ph data-ev="${ev}" title="${esc(t.lock.hint)}"><span class="ph-num">${esc(phoneMask(cfg.phone))}</span><span class="ph-key" aria-hidden="true">${icon('lock')}</span></a>`;
+
+// Mobil pastki panel: qo'ng'iroq, Telegram, ariza (har sahifada, telefonda)
+function actionBar(t, lang, cfg, sub) {
+  if (sub === 'admin' || !t.v3) return '';
+  const b = t.v3.bar, tg = tgUser(cfg), home = url(lang, '');
+  const call = cfg.phoneOpen ? `<a href="${telHref(cfg.phone)}" data-ev="bar_call">${icon('phone')}<span>${esc(b.call)}</span></a>` : `<a href="${home}#contact" data-ph-btn data-call="${esc(b.call)}" data-ev="bar_call">${icon('phone')}<span>${esc(b.call)}</span></a>`;
+  return `<nav class="m-bar" aria-label="${esc(b.order)}">${call}${tg ? `<a href="https://t.me/${esc(tg)}" target="_blank" rel="noopener noreferrer" data-ev="bar_tg">${icon('send')}<span>${esc(b.tg)}</span></a>` : ''}<a class="m-bar-main" href="${sub === '' ? '' : home}#contact" data-ev="bar_order">${icon('doc')}<span>${esc(b.order)}</span></a></nav>`;
+}
 
 function footer(t, lang, cfg, mode, sub = null) {
   const home = mode === 'preview' ? '' : url(lang, '');
@@ -148,11 +158,11 @@ function footer(t, lang, cfg, mode, sub = null) {
       <p class="eyebrow">${esc(t.footer2.call)}</p>
       <h2 id="call-title">${esc(t.v7.callTitle)}</h2>
       <p class="call-ph">${phoneLock(cfg, t, 'call_footer', 'ph-sm', `${home}#contact`)}</p>
-      <p class="call-lead" data-ph-lead="${esc(t.footer2.callLead)}">${esc(t.lock.bandLead)}</p>
+      <p class="call-lead" data-ph-lead="${esc(t.footer2.callLead)}">${esc(cfg.phoneOpen ? t.footer2.callLead : t.lock.bandLead)}</p>
     </div>
     <div class="call-actions">
-      <a class="btn btn-primary btn-lg" href="${home}#contact" data-ph-btn data-call="${esc(t.footer2.call)}" data-ev="call_footer_btn">${icon('phone')}<span>${esc(t.lock.call)}</span></a>
-      <a class="btn btn-ghost btn-lg" href="https://t.me/${esc(cfg.telegram)}" target="_blank" rel="noopener noreferrer" data-ev="tg_footer">${icon('send')}${esc(t.footer2.telegram)}</a>
+      ${cfg.phoneOpen ? `<a class="btn btn-primary btn-lg" href="${telHref(cfg.phone)}" data-ev="call_footer_btn">${icon('phone')}<span>${esc(t.footer2.call)}</span></a>` : `<a class="btn btn-primary btn-lg" href="${home}#contact" data-ph-btn data-call="${esc(t.footer2.call)}" data-ev="call_footer_btn">${icon('phone')}<span>${esc(t.lock.call)}</span></a>`}
+      ${tgUser(cfg) ? `<a class="btn btn-ghost btn-lg" href="https://t.me/${esc(tgUser(cfg))}" target="_blank" rel="noopener noreferrer" data-ev="tg_footer">${icon('send')}${esc(t.footer2.telegram)}</a>` : ''}
       <a class="btn btn-ghost btn-lg" href="#" target="_blank" rel="noopener noreferrer" data-wa-btn hidden data-ev="wa_footer">${icon('chat')}WhatsApp</a>
     </div>
   </div>
@@ -189,7 +199,7 @@ export function secHead(eyebrow, title, lead, id, extra = '', art = '') {
 export function aiFormFor(t, cfg, o = {}) { return aiForm(t, cfg, o); }
 
 function aiForm(t, cfg, o = {}) {
-  const serviceOptions = [...t.services.items.map((s) => s.title), ...(t.plc?.svc ? [t.plc.svc] : []), ...(t.mon?.svc ? [t.mon.svc] : []), ...t.extra.items.map((s) => s.title), t.contact.other];
+  const serviceOptions = [...t.services.items.map((s) => s.title), ...(t.plc?.svc ? [t.plc.svc] : []), ...(t.mon?.svc ? [t.mon.svc] : []), ...t.extra.items.map((s) => s.title), ...(t.v3?.cat.items.map((s) => s.name) || []), t.contact.other].filter((x, i, a) => a.indexOf(x) === i);
   const c = t.contact;
   const ai = t.ai;
   return `
@@ -570,7 +580,7 @@ ${noindex ? '' : ogAndAlt(lang, cfg, sub, title, description)}
 ${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>` : ''}
 </head>
 <body${bodyClass ? ` class="${bodyClass}"` : ''}>
-<div id="app">${header(t, lang, sub, 'prod', cfg)}${body}${footer(t, lang, cfg, 'prod', sub)}</div>
+<div id="app">${header(t, lang, sub, 'prod', cfg)}${body}${footer(t, lang, cfg, 'prod', sub)}${actionBar(t, lang, cfg, sub)}</div>
 <a class="tg-back" id="tg-back" href="/tg/#academy" hidden>${icon('back')}${esc(t.academy2.backToApp)}</a>
 </body>
 </html>
@@ -584,11 +594,11 @@ function orgLd(lang, t, cfg) {
   const services = [...t.services.items, ...t.extra.items];
   return {
     '@type': 'ProfessionalService', '@id': org, name: cfg.brand, url: cfg.domain + '/', logo: cfg.domain + '/assets/img/logo.png', image: cfg.domain + '/assets/img/og.png',
-    description: t.meta.description, ...(realEmail(cfg) ? { email: cfg.email } : {}), priceRange: '$$',
+    description: t.meta.description, ...(realEmail(cfg) ? { email: cfg.email } : {}), ...(cfg.phoneOpen ? { telephone: cfg.phone.replace(/\s/g, '') } : {}), priceRange: '$$',
     address: { '@type': 'PostalAddress', addressLocality: cfg.city[lang], addressCountry: cfg.country }, areaServed: [{ '@type': 'Country', name: 'Uzbekistan' }, ...['Tashkent', 'Samarkand', 'Andijan', 'Fergana', 'Namangan', 'Navoiy', 'Bukhara', 'Karshi', 'Nukus'].map((n) => ({ '@type': 'City', name: n }))],
     knowsAbout: ['PLC service', 'PLC repair', 'Industrial equipment maintenance', 'Industrial robot repair', 'ABB robots', 'KUKA robots', 'Siemens S7', 'SCADA', 'Variable frequency drive repair', 'Servo drive repair', 'CNC machine repair'],
     openingHours: cfg.workHours, knowsLanguage: ['uz', 'ru', 'en'], founder: { '@type': 'Person', name: cfg.engineerName, jobTitle: 'Engineer' },
-    sameAs: [`https://t.me/${cfg.telegram}`],
+    ...(tgUser(cfg) ? { sameAs: [`https://t.me/${tgUser(cfg)}`] } : {}),
     contactPoint: { '@type': 'ContactPoint', ...(realEmail(cfg) ? { email: cfg.email } : { url: cfg.domain + url(lang, '') + '#contact' }), contactType: 'customer service', availableLanguage: ['Uzbek', 'Russian', 'English'] },
     hasOfferCatalog: { '@type': 'OfferCatalog', name: t.services.eyebrow, itemListElement: services.map((s) => ({ '@type': 'Offer', itemOffered: { '@type': 'Service', name: s.title, description: s.text, areaServed: 'UZ', provider: { '@id': org } } })) }
   };

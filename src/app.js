@@ -1180,6 +1180,36 @@
     });
   }
 
+  /* ---------- Qayta qo'ng'iroq formasi (faqat telefon) ---------- */
+  function initSvcLinks() {
+    each(document.querySelectorAll('[data-svc]'), function (a) {
+      a.addEventListener('click', function () {
+        var sel = document.getElementById('f-service'), v = a.getAttribute('data-svc');
+        if (!sel) return;
+        for (var i = 0; i < sel.options.length; i++) if (sel.options[i].text === v) { sel.selectedIndex = i; break; }
+      });
+    });
+  }
+
+  function initCallback() {
+    var f = document.getElementById('cb-form');
+    if (!f) return;
+    var msg = f.querySelector('.cb-msg');
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var phone = f.phone.value.trim(), digits = phone.replace(/\D/g, '');
+      msg.className = 'cb-msg';
+      if (digits.length < 9 || digits.length > 15) { msg.textContent = f.getAttribute('data-err-phone'); msg.classList.add('bad'); f.phone.focus(); return; }
+      var btn = f.querySelector('button[type="submit"]'); btn.disabled = true;
+      var body = { phone: phone, urgent: f.urgent.checked, website: f.website.value, lang: f.getAttribute('data-lang') };
+      fetch('/api/callback', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), credentials: 'same-origin' })
+        .then(function (r) { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
+        .then(function (d) { msg.textContent = f.getAttribute('data-ok').replace('{code}', d.code || ''); msg.classList.add('ok'); f.reset(); beacon({ t: 'ev', e: body.urgent ? 'callback_urgent' : 'callback', p: location.pathname, l: lang() }); })
+        .catch(function () { msg.textContent = f.getAttribute('data-err'); msg.classList.add('bad'); })
+        .then(function () { btn.disabled = false; });
+    });
+  }
+
   function boot() {
     var app = document.getElementById('app');
     if (!app) return;
@@ -1187,6 +1217,10 @@
     if (PREVIEW) { var pref = store('lang'); if (pref && pref !== app.getAttribute('data-lang')) swapTo(app, pref); }
     initApp(app);
     initRate();
+    initCallback();
+    // Telefonda bosh sahifa videosi yashirin: trafikni tejash uchun umuman yuklanmaydi
+    if (window.matchMedia && matchMedia('(max-width: 760px)').matches) each(document.querySelectorAll('.hx3 .hx-screen video'), function (v) { v.pause(); v.removeAttribute('autoplay'); each(v.querySelectorAll('source'), function (s) { s.remove(); }); v.removeAttribute('src'); v.load(); });
+    initSvcLinks();
     beacon({ t: 'pv', p: location.pathname, l: lang(), r: document.referrer });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
