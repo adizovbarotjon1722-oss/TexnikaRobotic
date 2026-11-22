@@ -1161,12 +1161,32 @@
     });
   }
 
+  // 16-bosqich: sayt va xizmatni baholash formasi
+  function initRate() {
+    var f = document.getElementById('rate-form');
+    if (!f) return;
+    var msg = f.querySelector('.rate-msg');
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var val = function (n) { var x = f.querySelector('input[name="' + n + '"]:checked'); return x ? Number(x.value) : null; };
+      var body = { site: val('site'), service: val('service'), text: f.text.value.trim(), name: f.name.value.trim(), lang: f.getAttribute('data-lang') };
+      msg.className = 'rate-msg';
+      if (!body.site && !body.service) { msg.textContent = f.getAttribute('data-need'); msg.classList.add('bad'); return; }
+      var btn = f.querySelector('button[type="submit"]'); btn.disabled = true;
+      fetch('/api/feedback', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), credentials: 'same-origin' })
+        .then(function (r) { if (!r.ok) throw new Error(String(r.status)); msg.textContent = f.getAttribute('data-thanks'); msg.classList.add('ok'); f.reset(); beacon({ t: 'ev', e: 'rate_sent', p: location.pathname, l: lang() }); })
+        .catch(function () { msg.textContent = f.getAttribute('data-err'); msg.classList.add('bad'); })
+        .then(function () { btn.disabled = false; });
+    });
+  }
+
   function boot() {
     var app = document.getElementById('app');
     if (!app) return;
     PREVIEW = app.getAttribute('data-preview') === '1';
     if (PREVIEW) { var pref = store('lang'); if (pref && pref !== app.getAttribute('data-lang')) swapTo(app, pref); }
     initApp(app);
+    initRate();
     beacon({ t: 'pv', p: location.pathname, l: lang(), r: document.referrer });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);

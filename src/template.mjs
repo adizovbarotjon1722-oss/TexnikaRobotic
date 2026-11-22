@@ -7,6 +7,7 @@ import { LANGS, fmt } from './i18n.mjs';
 import { homePlc, homeWarranty, homeDowntime } from './template4.mjs';
 import { megaMenu, homeSupport, homeQuality } from './template5.mjs';
 import { homeMonitoring } from './template7.mjs';
+import { home2 } from './template8.mjs';
 
 export { LANGS };
 export const langPrefix = (l) => (l === 'uz' ? '' : `/${l}`);
@@ -22,6 +23,9 @@ export const LANG_META = {
 };
 
 const ICONS = {
+  star: '<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>',
+  chart: '<path d="M3 20h18"/><path d="M5 16l4-5 4 3 6-8"/><circle cx="19" cy="6" r="1.4"/>',
+  team: '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c.7-3.6 3.1-5.5 6-5.5s5.3 1.9 6 5.5"/><path d="M16 5.2a3 3 0 010 5.6M17.5 14.8c1.8.6 3 2.4 3.5 5.2"/>',
   robot: '<path d="M4 20h9"/><path d="M6 20v-3l3-2"/><circle cx="9" cy="15" r="1.6"/><path d="M10.2 13.8 15 9"/><circle cx="16" cy="8" r="1.6"/><path d="M17.4 8.8 20 11"/><path d="M19 12.5l2 1.5M20.5 10l1.5-.5"/>',
   gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M21.5 12h-3M5.5 12h-3M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1M18.7 18.7l-2.1-2.1M7.4 7.4 5.3 5.3"/><circle cx="12" cy="12" r="6.5"/>',
   chip: '<rect x="6" y="6" width="12" height="12" rx="1.5"/><rect x="9.5" y="9.5" width="5" height="5"/><path d="M9 2.5v3.5M15 2.5v3.5M9 18v3.5M15 18v3.5M2.5 9H6M2.5 15H6M18 9h3.5M18 15h3.5"/>',
@@ -67,7 +71,7 @@ export const logo = `<svg class="logo-mark" viewBox="0 0 32 32" aria-hidden="tru
 // Bosh ko'rinish: haqiqiy robot videosi (ovozsiz, tsikl). Preview faylida faqat birinchi kadr.
 const HERO_POSTER = '/assets/img/hero-robot.jpg';
 let posterData = '';
-function heroVideo(mode, cfg) {
+export function heroVideo(mode, cfg) {
   if (mode === 'preview') {
     if (!posterData) posterData = 'data:image/jpeg;base64,' + fs.readFileSync(new URL('../public/assets/img/hero-robot.jpg', import.meta.url)).toString('base64');
     return `<img class="hero-video" src="${posterData}" alt="" width="1080" height="1920">`;
@@ -96,11 +100,12 @@ export function coverSvg(p) {
 function header(t, lang, sub, mode, cfg) {
   const home = url(lang, '');
   const nav = [
-    [mode === 'preview' ? '#services' : `${home}#services`, t.nav.services, 'services'],
-    [url(lang, 'plc/'), t.nav5.plc, 'plc/'],
-    [url(lang, 'errors/'), t.nav3.errors, 'errors/'],
-    [url(lang, 'academy/'), t.nav2.academy, 'academy/'],
-    [url(lang, 'track/'), t.nav2.track, 'track/']
+    [url(lang, 'academy/'), t.v2.nav.training, 'academy/'],
+    [url(lang, 'monitoring/'), t.v2.nav.mon, 'monitoring/'],
+    [url(lang, 'robots/'), t.v2.nav.robots, 'robots/'],
+    [url(lang, 'documents/'), t.v2.nav.docs, 'documents/'],
+    [url(lang, 'team/'), t.v2.nav.team, 'team/'],
+    [url(lang, 'support/'), t.v2.nav.help, 'support/']
   ];
   const langLinks = LANGS.map((l) => {
     const m = LANG_META[l];
@@ -133,10 +138,10 @@ export const telHref = (p) => `tel:${String(p).replace(/[^\d+]/g, '')}`;
 export const phoneMask = (p) => String(p).split(' ').map((g, i) => (i < 2 ? g : g.replace(/\d/g, '•'))).join(' ');
 export const phoneLock = (cfg, t, ev, cls = '', href = '#contact') => `<a class="ph-lock ${cls}" href="${href}" data-ph data-ev="${ev}" title="${esc(t.lock.hint)}"><span class="ph-num">${esc(phoneMask(cfg.phone))}</span><span class="ph-key" aria-hidden="true">${icon('lock')}</span></a>`;
 
-function footer(t, lang, cfg, mode) {
+function footer(t, lang, cfg, mode, sub = null) {
   const home = mode === 'preview' ? '' : url(lang, '');
   const year = cfg.lastUpdated.slice(0, 4);
-  return `
+  return `${sub === '' ? '' : `
 <section class="call-band" aria-labelledby="call-title">
   <div class="wrap call-in">
     <div class="call-copy">
@@ -151,21 +156,23 @@ function footer(t, lang, cfg, mode) {
       <a class="btn btn-ghost btn-lg" href="#" target="_blank" rel="noopener noreferrer" data-wa-btn hidden data-ev="wa_footer">${icon('chat')}WhatsApp</a>
     </div>
   </div>
-</section>
+</section>`}
 <footer class="site-footer">
   <div class="wrap ftr">
     <div class="ftr-brand">${logo}<div><strong>${esc(cfg.brand)}</strong><p>${esc(t.footer.tagline)}</p><p class="ftr-contacts">${phoneLock(cfg, t, 'call_ftr', 'ph-sm', `${home}#contact`)}${realEmail(cfg) ? ` · <a href="mailto:${esc(cfg.email)}">${esc(cfg.email)}</a>` : ''}</p></div></div>
     <nav aria-label="${esc(t.a11y.menu)}"><ul class="ftr-nav">
-      <li><a href="${home}#services">${esc(t.nav.services)}</a></li>
+      <li><a href="${mode === 'preview' ? '#' : url(lang, 'academy/')}">${esc(t.v2.nav.training)}</a></li>
+      <li><a href="${mode === 'preview' ? '#' : url(lang, 'robots/')}">${esc(t.v2.nav.robots)}</a></li>
+      <li><a href="${mode === 'preview' ? '#' : url(lang, 'documents/')}">${esc(t.v2.nav.docs)}</a></li>
+      <li><a href="${mode === 'preview' ? '#' : url(lang, 'team/')}">${esc(t.v2.nav.team)}</a></li>
+      <li><a href="${mode === 'preview' ? '#' : url(lang, 'videos/')}">${esc(t.vid.title)}</a></li>
       <li><a href="${mode === 'preview' ? '#' : url(lang, 'portfolio/')}">${esc(t.nav2.portfolio)}</a></li>
-      <li><a href="${mode === 'preview' ? '#' : url(lang, 'academy/')}">${esc(t.nav2.academy)}</a></li>
       <li><a href="${mode === 'preview' ? '#' : url(lang, 'errors/')}">${esc(t.nav3.errors)}</a></li>
       <li><a href="${mode === 'preview' ? '#' : url(lang, 'track/')}">${esc(t.nav2.track)}</a></li>
       <li><a href="${mode === 'preview' ? '#plc' : url(lang, 'plc/')}">${esc(t.nav5.plc)}</a></li>
       <li><a href="${mode === 'preview' ? '#monitoring' : url(lang, 'monitoring/')}">${esc(t.nav9.mon)}</a></li>
       <li><a href="${mode === 'preview' ? '#warranty' : url(lang, 'warranty/')}">${esc(t.nav5.warranty)}</a></li>
       <li><a href="${mode === 'preview' ? '#support' : url(lang, 'support/')}">${esc(t.support.eyebrow)}</a></li>
-      <li><a href="${home}#faq">${esc(t.nav.faq)}</a></li>
     </ul></nav>
     <details class="privacy"><summary>${esc(t.footer.privacyTitle)}</summary><p>${esc(t.footer.privacy)}</p></details>
   </div>
@@ -563,7 +570,7 @@ ${noindex ? '' : ogAndAlt(lang, cfg, sub, title, description)}
 ${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>` : ''}
 </head>
 <body${bodyClass ? ` class="${bodyClass}"` : ''}>
-<div id="app">${header(t, lang, sub, 'prod', cfg)}${body}${footer(t, lang, cfg, 'prod')}</div>
+<div id="app">${header(t, lang, sub, 'prod', cfg)}${body}${footer(t, lang, cfg, 'prod', sub)}</div>
 <a class="tg-back" id="tg-back" href="/tg/#academy" hidden>${icon('back')}${esc(t.academy2.backToApp)}</a>
 </body>
 </html>
@@ -595,10 +602,9 @@ export function renderHome(lang, t, cfg, data, assetVer) {
   const jsonLd = { '@context': 'https://schema.org', '@graph': [
     orgLd(lang, t, cfg),
     { '@type': 'WebSite', '@id': cfg.domain + '/#site', url: cfg.domain + '/', name: cfg.brand, inLanguage: LANGS, publisher: { '@id': cfg.domain + '/#org' } },
-    { '@type': 'WebPage', '@id': pageUrl + '#page', url: pageUrl, name: t.meta.title, inLanguage: lang, isPartOf: { '@id': cfg.domain + '/#site' }, about: { '@id': cfg.domain + '/#org' } },
-    { '@type': 'FAQPage', '@id': pageUrl + '#faq', inLanguage: lang, mainEntity: t.faq.items.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) }
+    { '@type': 'WebPage', '@id': pageUrl + '#page', url: pageUrl, name: t.v2.metaTitle, inLanguage: lang, isPartOf: { '@id': cfg.domain + '/#site' }, about: { '@id': cfg.domain + '/#org' } }
   ] };
-  return layout({ lang, t, cfg, sub: '', title: t.meta.title, description: t.meta.description, keywords: t.meta.keywords, body: home(t, lang, cfg, data, 'prod'), jsonLd, assetVer });
+  return layout({ lang, t, cfg, sub: '', title: t.v2.metaTitle, description: t.v2.metaDesc, keywords: t.meta.keywords, body: home2(t, lang, cfg, data), jsonLd, assetVer });
 }
 
 export function renderPortfolioList(lang, t, cfg, items, assetVer) {

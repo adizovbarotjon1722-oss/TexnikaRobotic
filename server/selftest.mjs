@@ -67,8 +67,8 @@ try {
   ok(!!csrf && lr.headers.get('set-cookie').includes('HttpOnly'), 'admin kirish');
   const st = await (await get('/admin/api/stats?days=7', { Cookie: cookie })).json();
   ok(st.totals.requests === 1, 'analitika');
-  ok((await post('/admin/api/texts', { lang: 'en', key: 'hero.h1a', value: 'Selftest heading' }, { Cookie: cookie })).status === 403, 'CSRF tokensiz rad etiladi');
-  ok((await post('/admin/api/texts', { lang: 'en', key: 'hero.h1a', value: 'Selftest heading' }, { Cookie: cookie, 'X-CSRF': csrf })).status === 200, 'matn tahrirlandi');
+  ok((await post('/admin/api/texts', { lang: 'en', key: 'v2.hero.h1a', value: 'Selftest heading' }, { Cookie: cookie })).status === 403, 'CSRF tokensiz rad etiladi');
+  ok((await post('/admin/api/texts', { lang: 'en', key: 'v2.hero.h1a', value: 'Selftest heading' }, { Cookie: cookie, 'X-CSRF': csrf })).status === 200, 'matn tahrirlandi');
   ok((await (await get('/en/')).text()).includes('Selftest heading'), 'tahrir saytda ko‘rinadi');
   const list = await (await get('/admin/api/requests', { Cookie: cookie })).json();
   ok((await post(`/admin/api/requests/${list[0].id}`, { status: 'scheduled', note: 'Tomorrow 10:00' }, { Cookie: cookie, 'X-CSRF': csrf })).status === 200, 'ariza holati yangilandi');
@@ -227,7 +227,7 @@ try {
   ok(plcHtml.includes('id="led-tool"') && plcHtml.includes('id="led-data"') && (plcHtml.match(/class="fault reveal"/g) || []).length === 8 && plcHtml.includes('"@type":"Service"'), 'PLC sahifasi: 8 ta nosozlik rasmi, LED tashxis, Service schema');
   ok(!/style="/.test(plcHtml) && plcHtml.includes('class="plc-scene"'), 'PLC sahifasi: inline style yo‘q, PLC sahnasi bor');
   const homeHtml = await (await get('/')).text();
-  ok(['id="plc"', 'id="warranty"', 'id="downtime"', 'id="w-form"', 'hero-video'].every((x) => homeHtml.includes(x)), 'bosh sahifa: PLC, kafolat, kalkulyator va robot videosi');
+  ok(['id="services"', 'id="monitoring"', 'id="training"', 'id="trust"', 'hero-video', 'href="/warranty/"'].every((x) => homeHtml.includes(x)), 'bosh sahifa: yo‘nalishlar, monitoring, o‘qitish, ishonch va video');
   ok((await (await get('/sitemap.xml')).text()).includes('/ru/plc/'), 'sitemap: PLC va kafolat sahifalari');
   ok((await (await get(`/api/warranty/${cr.code}`)).json()).status === 'not_done', 'kafolat: tugallanmagan ish');
   ok((await get('/api/warranty/TX-0000-0000')).status === 404, 'kafolat: noma’lum raqam');
@@ -243,7 +243,7 @@ try {
   // 6-bosqich: bo'limlar, qo'llab-quvvatlash, sahnalar
   for (const p of ['/support/', '/ru/support/', '/en/support/']) { const r = await get(p); ok(r.status === 200 && (await r.text()).includes('id="remote"'), `qo‘llab-quvvatlash sahifasi ${p}`); }
   const h6 = await (await get('/')).text();
-  ok(['class="mega"', 'id="quality"', 'hero-robot.mp4', 'plc-scene', 'id="support"', 'href="/support/"'].every((x) => h6.includes(x)) && !/style="/.test(h6), 'bosh sahifa: yacheykalar, menyu, payvand va PLC sahnalari, qo‘llab-quvvatlash');
+  ok(['class="mega"', 'hero-robot.mp4', 'href="/support/"', 'href="/robots/"', 'href="/team/"'].every((x) => h6.includes(x)) && !/style="/.test(h6), 'bosh sahifa: menyu, video, yangi bo‘limlarga havolalar');
   ok((await (await get('/sitemap.xml')).text()).includes('/en/support/'), 'sitemap: qo‘llab-quvvatlash');
   // 12-bosqich: akkauntlar, parolni tiklash, video qo'llanmalar, dars videosi
   const wait = (ms = 300) => new Promise((r) => setTimeout(r, ms));
@@ -334,11 +334,11 @@ try {
   ok((await (await get('/sitemap.xml')).text()).includes('/monitoring/'), 'monitoring: sitemap’da bor');
   // 15-bosqich: SEO sarlavha, bo‘limlarni yashirish, yangi hujjat turlari
   ok(/<h1[^>]*><span class="h1k">PLC servis/.test(hm) && /<title>PLC servis/.test(hm), 'SEO: sarlavha va H1 da “PLC servis”');
-  ok((await post('/admin/api/sections', { hidden: ['plans', 'yomon'] }, A)).status === 200, 'bo‘limlar: saqlandi');
+  ok((await post('/admin/api/sections', { hidden: ['training', 'yomon'] }, A)).status === 200, 'bo‘limlar: saqlandi');
   const hm2 = await (await get('/')).text();
-  ok(!hm2.includes('id="plans"') && hm2.includes('id="faq"') && hm2.includes('id="contact"'), 'bo‘limlar: yashirilgan bo‘lim chiqmaydi');
+  ok(!hm2.includes('id="training"') && hm2.includes('id="trust"') && hm2.includes('id="contact"'), 'bo‘limlar: yashirilgan bo‘lim chiqmaydi');
   await post('/admin/api/sections', { hidden: [] }, A);
-  ok((await (await get('/')).text()).includes('id="plans"'), 'bo‘limlar: qayta ko‘rsatildi');
+  ok((await (await get('/')).text()).includes('id="training"'), 'bo‘limlar: qayta ko‘rsatildi');
   const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
   ok((await post('/admin/api/doc-assets', { sign: 'javascript:alert(1)' }, A)).status === 400, 'imzo: faqat rasm qabul qilinadi');
   ok((await post('/admin/api/doc-assets', { sign: png, stamp: png }, A)).status === 200, 'imzo va muhr saqlandi');
@@ -348,6 +348,22 @@ try {
   await post(`/admin/api/docs/${rr.id}/send`, {}, A);
   const rp = await (await get(`/doc/${rdoc.token}/`)).text();
   ok(rp.includes('Servis hisoboti') && rp.includes('Kabel uzilgan') && rp.includes('1 125 000') && rp.includes('Bir million bir yuz yigirma besh ming so‘m') && rp.includes('class="doc-stamp"') && !/style="/.test(rp), 'servis hisoboti sahifasi: chegirma, summa so‘z bilan, muhr');
+  // 16-bosqich: yangi tuzilma, Ustalar, baholash
+  for (const [pth, word] of [['/robots/', 'RAPID'], ['/ru/documents/', 'журнал'], ['/en/team/', 'Engineers'], ['/en/', 'People who know why']]) {
+    const r = await get(pth); const x = await r.text();
+    ok(r.status === 200 && x.includes(word) && !/style="/.test(x), `yangi sahifa ${pth}`);
+  }
+  ok((await (await get('/sitemap.xml')).text()).includes('/ru/robots/'), 'sitemap: yangi sahifalar');
+  ok((await post('/api/feedback', { lang: 'uz' })).status === 400, 'baho: bo‘sh baho rad etiladi');
+  ok((await post('/api/feedback', { site: 5, service: 4, text: 'Juda qulay sayt', name: 'Sinov', lang: 'uz' })).status === 201, 'baho: sayt va xizmat bahosi qabul qilindi');
+  const fbl = await (await get('/admin/api/feedback', { Cookie: cookie })).json();
+  ok(fbl.rows.length === 1 && fbl.summary.site === 5, 'baho: adminda ko‘rinadi');
+  await post(`/admin/api/feedback/${fbl.rows[0].id}`, { published: true }, A);
+  const tmr = await (await post('/admin/api/team', { name: 'Aziz Karimov', years: 12, skills: 'KUKA KR C4, Siemens S7-1500', role: { uz: 'PLC muhandisi', ru: 'Инженер ПЛК', en: 'PLC engineer' }, works: { uz: 'Qadoqlash liniyasi PLC sini tikladi' } }, A)).json();
+  ok(tmr.id > 0, 'usta qo‘shildi');
+  const hm3 = await (await get('/')).text();
+  ok(hm3.includes('Aziz Karimov') && hm3.includes('Juda qulay sayt') && hm3.includes('id="rate-form"'), 'bosh sahifa: usta va baho ko‘rinadi');
+  ok((await (await get('/team/')).text()).includes('Qadoqlash liniyasi PLC sini tikladi'), 'Ustalar sahifasi: bajargan ishlari');
   const cp = await (await post(`/admin/api/docs/${rr.id}/copy`, { kind: 'invoice' }, A)).json();
   const inv = await (await get(`/admin/api/docs/${cp.id}`, { Cookie: cookie })).json();
   ok(/^HS-/.test(inv.number) && inv.status === 'draft' && inv.data.ref === rdoc.number && inv.data.items.length === 1, 'hisobdan nusxa: to‘lov uchun hisob');

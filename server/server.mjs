@@ -20,6 +20,8 @@ import { createMedia } from './media.mjs';
 import { renderAccount, renderVideos } from '../src/template6.mjs';
 import { renderPlc, renderWarranty } from '../src/template4.mjs';
 import { renderMonitoring } from '../src/template7.mjs';
+import { renderTeam, renderService } from '../src/template8.mjs';
+import { createTeam, listTeam, feedbackSummary, listFeedbackPublic } from './team.mjs';
 import { renderSupport } from '../src/template5.mjs';
 import { track, stats } from './analytics.mjs';
 import { texts, flatten, baseTexts, LANGS } from '../src/i18n.mjs';
@@ -44,7 +46,7 @@ const fileCfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'site.config.json'), 
 const SETTING_KEYS = ['brand', 'engineerName', 'phone', 'whatsapp', 'telegram', 'email', 'city_uz', 'city_ru', 'city_en', 'responseHours', 'domain',
   'company_legal', 'company_address', 'company_inn', 'company_bank', 'company_account', 'company_mfo', 'googleVerify', 'yandexVerify', 'admin_tg_ids', 'warrantyMonths', 'partsMonths'];
 const EXTRA_KEYS = SETTING_KEYS.slice(11);
-const HOME_SECTIONS = ['stats', 'services', 'quality', 'plc', 'monitoring', 'brands', 'process', 'downtime', 'plans', 'warranty', 'support', 'portfolio', 'errors', 'reviews', 'faq'];
+const HOME_SECTIONS = ['directions', 'monitoring', 'training', 'team', 'trust'];
 let BOT_USERNAME = '';
 let heroOf = () => '';
 function cfg() {
@@ -173,9 +175,12 @@ function routePage(req, res, p) {
   if (!p.endsWith('/')) { res.writeHead(301, { ...SEC_HEADERS, Location: `${m ? `/${lang}` : ''}${p}/` }); return res.end(); }
   const t = T(lang); const c = cfg();
   let mm;
-  if (p === '/') return html(res, renderHome(lang, t, c, { portfolio: listPortfolio(), courses: listCourses(), errors: topErrors(10), reviews: reviews.listPublic(6), reviewSummary: reviews.summary() }, VER));
+  if (p === '/') return html(res, renderHome(lang, t, c, { portfolio: listPortfolio(), courses: listCourses(), errors: topErrors(10), reviews: reviews.listPublic(3), reviewSummary: reviews.summary(), team: listTeam(), feedback: feedbackSummary(), feedbackPublic: listFeedbackPublic(3) }, VER));
   if (ops.page(req, res, lang, p, t, c)) return;
   if (p === '/monitoring/') return html(res, renderMonitoring(lang, t, c, VER));
+  if (p === '/robots/') return html(res, renderService(lang, t, c, 'robots', VER));
+  if (p === '/documents/') return html(res, renderService(lang, t, c, 'docs', VER));
+  if (p === '/team/') return html(res, renderTeam(lang, t, c, listTeam(), listPortfolio().filter((x) => !x.sample), VER));
   if (p === '/plc/') return html(res, renderPlc(lang, t, c, { cases: listPortfolio().filter((x) => x.cover === 'plc' || /plc|s7-|simatic|mitsubishi|omron|allen|modicon/i.test(`${x.brand} ${x.model}`)) }, VER));
   if (p === '/warranty/') return html(res, renderWarranty(lang, t, c, VER));
   if (p === '/support/') return html(res, renderSupport(lang, t, c, VER));
@@ -201,7 +206,7 @@ function routePage(req, res, p) {
 
 function sitemap(res) {
   const c = cfg();
-  const subs = ['', 'plc/', 'monitoring/', 'warranty/', 'support/', 'portfolio/', 'academy/', 'videos/', 'track/', ...ops.sitemapPaths(), ...listPortfolio().filter((p) => !p.sample).map((p) => `portfolio/${p.slug}/`), ...listCourses().map((x) => `academy/${x.slug}/`)];
+  const subs = ['', 'academy/', 'monitoring/', 'robots/', 'documents/', 'team/', 'plc/', 'warranty/', 'support/', 'portfolio/', 'videos/', 'track/', ...ops.sitemapPaths(), ...listPortfolio().filter((p) => !p.sample).map((p) => `portfolio/${p.slug}/`), ...listCourses().map((x) => `academy/${x.slug}/`)];
   const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${subs.flatMap((s) => LANGS.map((l) => `  <url><loc>${esc(c.domain + pageUrl(l, s))}</loc><lastmod>${now().slice(0, 10)}</lastmod>${LANGS.map((a) => `<xhtml:link rel="alternate" hreflang="${a}" href="${esc(c.domain + pageUrl(a, s))}"/>`).join('')}<xhtml:link rel="alternate" hreflang="x-default" href="${esc(c.domain + pageUrl('uz', s))}"/></url>`)).join('\n')}\n</urlset>\n`;
   send(res, 200, xml, MIME['.xml'], { 'Cache-Control': 'public, max-age=3600' });
 }
@@ -370,6 +375,8 @@ const ops = createOps(ctx);
 const academy = createAcademy({ ...ctx, courseBySlug, listCourses, lessonsOf, quizOf });
 ctx.academy = academy;
 const reviews = createReviews(ctx);
+const team = createTeam(ctx);
+if (!listTeam(true).length) db.prepare('INSERT INTO team(sort, name, years, skills, data, published, created_at, updated_at) VALUES (0, ?, NULL, ?, ?, 1, ?, ?)').run(cfg().engineerName || 'Barotjon', 'ABB, KUKA, Siemens PLC, Xitoy va Germaniya uskunalari, sanoat elektronikasi', JSON.stringify({ role: { uz: 'Bosh muhandis', ru: 'Главный инженер', en: 'Lead engineer' } }), now(), now());
 ctx.reviews = reviews;
 const warranty = createWarranty(ctx);
 ctx.warranty = warranty;
@@ -627,6 +634,7 @@ async function adminApi(req, res, p, sess) {
     try { const ok = await sendText(`✅ ${esc(cfg().brand)}: Telegram ulanishi ishlayapti.`); return json(res, ok ? 200 : 503, { ok }); } catch (e) { return json(res, 502, { error: e.message }); }
   }
   if (await reviews.admin(req, res, p, method)) return;
+  if (await team.admin(req, res, p, method)) return;
   if (await accounts.admin(req, res, p, method, q)) return;
   if (await media.admin(req, res, p, method, q, readBody)) return;
   await ops.admin(req, res, p, method, q);
@@ -685,6 +693,7 @@ async function handle(req, res) {
     if (p === '/api/e' && method === 'POST') return apiEvent(req, res, ip);
     if ((m = p.match(/^\/api\/warranty\/([A-Za-z0-9-]{1,20})$/)) && method === 'GET') return warranty.api(req, res, ip, m[1]);
     if (p === '/api/review' && method === 'POST') return reviews.apiWeb(req, res, ip);
+    if (p === '/api/feedback' && method === 'POST') return team.apiFeedback(req, res, ip);
     if (p.startsWith('/api/account/')) return accounts.api(req, res, ip, p, method);
     if ((m = p.match(/^\/api\/videos\/(\d+)\/view$/)) && method === 'POST') return media.apiView(req, res, ip, +m[1], accounts.userFrom(req));
     if (p.startsWith('/api/academy/')) { const r = academy.api(req, res, ip, p, method); if (r !== null) return r; }

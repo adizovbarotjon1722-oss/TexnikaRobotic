@@ -96,6 +96,7 @@
     ['eq', 'Uskunalar', 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 18h2v2h-2z'],
     ['docs', 'Hujjatlar', 'M14 3H6v18h12V7zM14 3v4h4M9 12h6M9 16h6'],
     ['err', 'Xato kodlari', 'M12 3 2.5 20h19zM12 10v4M12 17v.01'],
+    ['team', 'Ustalar', 'M9 11a4 4 0 100-8 4 4 0 000 8zM2 21c.8-4 3.6-6 7-6s6.2 2 7 6M17 8h5M19.5 5.5v5'],
     ['port', 'Portfel', 'M3 7h18v13H3zM8 7V4h8v3'],
     ['rev', 'Baholar', 'M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z'],
     ['acad', 'Akademiya', 'M2 9l10-5 10 5-10 5zM6 11v5c3 2 9 2 12 0v-5'],
@@ -133,7 +134,7 @@
     const tab = TABS.some((t) => t[0] === k) ? k : 'dash';
     for (const [n, b] of Object.entries(navBtns)) b.classList.toggle('on', n === tab), b.setAttribute('aria-current', n === tab ? 'page' : 'false');
     clear(main);
-    ({ dash: viewDash, req: viewReq, eq: viewEq, docs: viewDocs, err: viewErr, port: viewPort, rev: viewRev, acad: viewAcad, vid: viewVid, users: viewUsers, text: viewText, set: viewSet })[tab](arg);
+    ({ dash: viewDash, req: viewReq, eq: viewEq, docs: viewDocs, err: viewErr, team: viewTeam, port: viewPort, rev: viewRev, acad: viewAcad, vid: viewVid, users: viewUsers, text: viewText, set: viewSet })[tab](arg);
     main.focus({ preventScroll: true });
     window.scrollTo(0, 0);
   }
@@ -1059,9 +1060,78 @@
     } catch (e) { toast(errText(e), 'bad'); }
   }
 
+  /* ---------- Ustalar ---------- */
+  async function viewTeam(arg) {
+    if (arg) return teamEdit(arg === 'new' ? null : +arg);
+    main.append(head('Ustalar', 'Saytdagi “Ustalar” sahifasi va bosh sahifadagi blok. Rasm, tajriba, ko‘nikmalar va bajargan ishlarni uch tilda kiriting.', h('a', { class: 'btn btn-primary', href: '#team/new', text: '+ Yangi usta' })));
+    const box = h('div', {}, loading()); main.append(box);
+    let rows; try { rows = await api('/team'); } catch (e) { clear(box).append(h('p', { class: 'err', text: errText(e) })); return; }
+    clear(box);
+    if (!rows.length) return box.append(empty('Hali usta qo‘shilmagan'));
+    box.append(h('div', { class: 'tbl-scroll' }, h('table', { class: 'tbl' },
+      h('thead', {}, h('tr', {}, ['', 'Ism', 'Lavozim', 'Tajriba', 'Saytda', 'Tartib'].map((c) => h('th', { text: c })))),
+      h('tbody', {}, rows.map((m) => h('tr', { class: 'row-link', tabindex: '0', onclick: () => { location.hash = `team/${m.id}`; } },
+        h('td', {}, m.photo ? h('img', { src: `/media/${m.photo}`, alt: '', class: 'tm-thumb' }) : h('span', { class: 'tm-thumb tm-thumb-e', text: (m.name || '?')[0] })),
+        h('td', { text: m.name }), h('td', { text: m.data.role?.uz || '—' }), h('td', { text: m.years ? `${m.years} yil` : '—' }),
+        h('td', { text: m.published ? 'Ha' : 'Yo‘q' }), h('td', { text: String(m.sort) })))))));
+  }
+  async function teamEdit(id) {
+    main.append(h('a', { href: '#team', class: 'back', text: '← Ustalar' }));
+    let m = { name: '', photo: '', years: '', skills: [], sort: 0, published: 1, data: {} };
+    if (id) { try { m = (await api('/team')).find((x) => x.id === id) || m; } catch (e) { return main.append(h('p', { class: 'err', text: errText(e) })); } }
+    const d = m.data || {};
+    const name = h('input', { type: 'text', maxlength: '80', value: m.name, required: true });
+    const years = h('input', { type: 'number', min: '0', max: '60', value: m.years || '' });
+    const sort = h('input', { type: 'number', value: m.sort || 0 });
+    const pub = h('input', { type: 'checkbox', checked: m.published !== 0 });
+    const skills = h('input', { type: 'text', maxlength: '600', value: (m.skills || []).join(', '), placeholder: 'ABB IRC5, KUKA KR C4, Siemens S7-1500, TIA Portal' });
+    const tri = { role: triField('Lavozim', d.role, { max: 80 }), bio: triField('Qisqacha ma’lumot', d.bio, { area: true, max: 1200 }), works: triField('Bajargan ishlari (har qatorga bittadan)', d.works, { area: true, rows: 5 }), certs: triField('Sertifikatlar (har qatorga bittadan)', d.certs, { area: true, rows: 3, max: 1000 }) };
+    let photo = m.photo || '';
+    const prev = h('div', { class: 'tm-prev' });
+    const drawPrev = () => clear(prev).append(photo ? h('img', { src: `/media/${photo}`, alt: '' }) : h('span', { class: 'muted', text: 'Rasm yo‘q' }));
+    drawPrev();
+    const file = h('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp', class: 'vh' });
+    file.addEventListener('change', async () => {
+      const fl = file.files[0]; if (!fl) return;
+      try { const data = await readAsDataUrl(fl); const r = await api('/upload', { method: 'POST', body: { image: data } }); photo = r.file; drawPrev(); toast('Rasm yuklandi. Saqlashni unutmang'); } catch (e) { toast(errText(e), 'bad'); }
+      file.value = '';
+    });
+    const save = h('button', { class: 'btn btn-primary', type: 'submit', text: 'Saqlash' });
+    main.append(h('form', { class: 'editor', onsubmit: async (e) => {
+      e.preventDefault(); save.disabled = true;
+      const body = { name: name.value.trim(), years: years.value, sort: sort.value, published: pub.checked, skills: skills.value, photo, ...Object.fromEntries(Object.entries(tri).map(([k, f]) => [k, f.value()])) };
+      try { const r = await api(`/team${id ? '/' + id : ''}`, { method: 'POST', body }); toast('Saqlandi'); if (!id) location.hash = `team/${r.id}`; } catch (er) { toast(errText(er), 'bad'); } finally { save.disabled = false; }
+    } },
+    head(id ? m.name : 'Yangi usta', 'Ma’lumotlar saytda darhol ko‘rinadi.'),
+    h('div', { class: 'split' },
+      h('div', { class: 'stack' }, h('div', { class: 'card' }, field('Ism familiya', name), tri.role, field('Uskunalar va ko‘nikmalar', skills, 'Vergul bilan ajrating'), tri.bio), h('div', { class: 'card' }, tri.works, tri.certs)),
+      h('div', { class: 'stack' },
+        h('div', { class: 'card' }, h('span', { class: 'lbl', text: 'Rasm' }), prev, h('div', { class: 'filters' }, h('button', { type: 'button', class: 'btn btn-ghost sm', text: 'Rasm tanlash', onclick: () => file.click() }), h('button', { type: 'button', class: 'btn btn-ghost sm', text: 'Olib tashlash', onclick: () => { photo = ''; drawPrev(); } }), file),
+          h('small', { class: 'muted', text: 'Tik (portret) rasm yaxshi ko‘rinadi, masalan 800×1000.' })),
+        h('div', { class: 'card' }, h('div', { class: 'row2' }, field('Tajriba (yil)', years), field('Tartib raqami', sort, 'Kichigi birinchi')), h('label', { class: 'cb' }, pub, ' Saytda ko‘rsatish')),
+        h('div', { class: 'sticky-act' }, save,
+          id ? h('button', { type: 'button', class: 'btn btn-danger', text: 'O‘chirish', onclick: async () => { if (!confirm('Usta o‘chirilsinmi?')) return; await api(`/team/${id}`, { method: 'DELETE' }); location.hash = 'team'; } }) : null)))));
+  }
+
+  // Saytdan kelgan baholar (sayt qulayligi va xizmat sifati)
+  async function feedbackCard() {
+    let d; try { d = await api('/feedback'); } catch (e) { return h('p', { class: 'err', text: errText(e) }); }
+    const s = d.summary || {};
+    const st = (n) => (n ? '★'.repeat(n) + '☆'.repeat(5 - n) : '—');
+    return h('div', { class: 'card fb-card' }, h('h2', { text: 'Saytdan kelgan baholar' }),
+      h('p', { class: 'muted', text: `Sayt: ${s.site ?? '—'} (${s.ns || 0} ta) · Xizmat: ${s.service ?? '—'} (${s.nv || 0} ta). Izohli baholarni “Saytda” deb belgilasangiz, bosh sahifada ko‘rinadi.` }),
+      d.rows.length ? h('div', { class: 'tbl-scroll' }, h('table', { class: 'tbl' }, h('thead', {}, h('tr', {}, ['Sana', 'Sayt', 'Xizmat', 'Izoh', 'Kimdan', 'Saytda', ''].map((c) => h('th', { text: c })))),
+        h('tbody', {}, d.rows.map((r) => {
+          const cb = h('input', { type: 'checkbox', checked: !!r.published, onchange: async () => { try { await api(`/feedback/${r.id}`, { method: 'POST', body: { published: cb.checked } }); toast('Saqlandi'); } catch (e) { toast(errText(e), 'bad'); } } });
+          return h('tr', {}, h('td', { class: 'nowrap', text: fmtDate(r.created_at) }), h('td', { class: 'nowrap', text: st(r.site) }), h('td', { class: 'nowrap', text: st(r.service) }), h('td', { text: r.text || '—' }), h('td', { text: r.name || '—' }), h('td', {}, cb),
+            h('td', {}, h('button', { type: 'button', class: 'btn-x', text: '✕', title: 'O‘chirish', onclick: async (e) => { if (!confirm('O‘chirilsinmi?')) return; await api(`/feedback/${r.id}`, { method: 'DELETE' }); e.target.closest('tr').remove(); } })));
+        })))) : empty('Hozircha baho yo‘q'));
+  }
+
   /* ---------- Xato kodlari ---------- */
   async function viewRev() {
     main.append(head('Mijoz baholari', 'Ariza “bajarildi” bo‘lgach mijoz sayt, bot yoki ilova orqali baholaydi. E’lon qilingan izohli baholar bosh sahifada ko‘rinadi.'));
+    main.append(await feedbackCard(), h('h2', { class: 'sub-h', text: 'Ariza bo‘yicha baholar' }));
     const box = h('div', {}, loading()); main.append(box);
     let rows; try { rows = await api('/reviews'); } catch (e) { clear(box).append(h('p', { class: 'err', text: errText(e) })); return; }
     if (!rows.length) return clear(box).append(empty('Hozircha baholar yo‘q'));
@@ -1153,8 +1223,7 @@
 
   // Bosh sahifadagi bo‘limlarni yashirish yoki qayta ko‘rsatish
   async function sectionsCard() {
-    const SECS = [['stats', 'Raqamlar qatori (24/7, javob vaqti…)'], ['services', 'Xizmatlar'], ['quality', 'Sifat standarti'], ['plc', 'PLC ta’miri'], ['monitoring', 'PLC monitoring'], ['brands', 'Brendlar'],
-      ['process', 'Ish tartibi'], ['downtime', 'To‘xtash narxi kalkulyatori'], ['plans', 'Hamkorlik shakllari'], ['warranty', 'Kafolat'], ['support', 'Yordam markazi'], ['portfolio', 'Portfel'], ['errors', 'Xato kodlari'], ['reviews', 'Mijoz baholari'], ['faq', 'Savollar']];
+    const SECS = [['directions', 'To‘rt yo‘nalish kartalari'], ['monitoring', 'Avtomatik monitoring'], ['training', 'O‘qitish (kurslar)'], ['team', 'Ustalar va bajarilgan ishlar'], ['trust', 'Kafolat va baholash']];
     let st; try { st = await api('/sections'); } catch (e) { return h('div', { class: 'card' }, h('p', { class: 'err', text: errText(e) })); }
     const hid = new Set(st.hidden || []);
     const boxes = SECS.map(([k, l]) => [k, h('input', { type: 'checkbox', checked: !hid.has(k) }), l]);
@@ -1162,7 +1231,7 @@
     return h('form', { class: 'card', onsubmit: async (e) => {
       e.preventDefault(); save.disabled = true;
       try { await api('/sections', { method: 'POST', body: { hidden: boxes.filter(([, c]) => !c.checked).map(([k]) => k) } }); toast('Saqlandi. Bosh sahifa yangilandi'); } catch (er) { toast(errText(er), 'bad'); } finally { save.disabled = false; }
-    } }, h('h2', { text: 'Bosh sahifa bo‘limlari' }), h('p', { class: 'muted', text: 'Belgini olib tashlasangiz, bo‘lim bosh sahifada ko‘rinmaydi. Ma’lumotlar o‘chmaydi, istalgan payt qaytarish mumkin. Bosh ekran va ariza formasi doim ko‘rinadi.' }),
+    } }, h('h2', { text: 'Bosh sahifa bo‘limlari' }), h('p', { class: 'muted', text: 'Belgini olib tashlasangiz, bo‘lim bosh sahifada ko‘rinmaydi. Ma’lumotlar o‘chmaydi, istalgan payt qaytarish mumkin. Bosh ekran va ariza formasi doim ko‘rinadi. Ustalar bo‘limi ma’lumoti “Ustalar” bo‘limida to‘ldiriladi.' }),
       h('div', { class: 'sec-list' }, boxes.map(([, c, l]) => h('label', { class: 'cb' }, c, ` ${l}`))), save);
   }
 

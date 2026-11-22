@@ -4,26 +4,27 @@ import { sart } from './art.mjs';
 
 // Har bo'lim: [prod manzil, preview manzil, chizma]
 const HUB = {
-  services: ['#services', '#services', 'gears'],
-  plc: ['plc/', '#plc', 'plcmini'],
-  monitoring: ['monitoring/', '#monitoring', 'factory'],
-  ai: ['#contact', '#contact', 'scan'],
-  support: ['support/', '#support', 'headset'],
-  errors: ['errors/', '#errors', 'alarm'],
-  warranty: ['warranty/', '#warranty', 'stamp'],
   academy: ['academy/', '#top', 'book'],
+  monitoring: ['monitoring/', '#monitoring', 'factory'],
+  robots: ['robots/', '#top', 'gears'],
+  documents: ['documents/', '#top', 'clip'],
+  plc: ['plc/', '#plc', 'plcmini'],
+  team: ['team/', '#team', 'caliper'],
+  support: ['support/', '#support', 'headset'],
   videos: ['videos/', '#top', 'screen'],
-  portfolio: ['portfolio/', '#portfolio', 'caliper'],
-  track: ['track/', '#top', 'magnifier'],
-  calc: ['#downtime', '#downtime', 'gauge']
+  warranty: ['warranty/', '#warranty', 'stamp'],
+  errors: ['errors/', '#errors', 'alarm'],
+  portfolio: ['portfolio/', '#portfolio', 'grid'],
+  track: ['track/', '#top', 'magnifier']
 };
+const hubItem = (t, k) => t.hub.items[k] || t.v2.hub[k];
 const hubHref = (lang, mode, k) => { const [p, pv] = HUB[k]; if (mode === 'preview') return pv; return p.startsWith('#') ? url(lang, '') + p : url(lang, p); };
 
 export function hubSection(t, lang, mode) {
   const h = t.hub;
   return `<section class="hub" id="sections" aria-labelledby="hub-title"><div class="wrap">
     <div class="hub-head"><p class="eyebrow">${esc(h.eyebrow)}</p><h2 id="hub-title">${esc(h.title)}</h2></div>
-    <ul class="hub-grid">${Object.keys(HUB).map((k) => `<li><a class="cell c-${k}" href="${hubHref(lang, mode, k)}" data-ev="hub_${k}">${sart(HUB[k][2])}<span class="cell-t">${esc(h.items[k][0])}</span><span class="cell-d">${esc(h.items[k][1])}</span>${icon('arrow', 'ic cell-a')}</a></li>`).join('')}</ul>
+    <ul class="hub-grid">${Object.keys(HUB).map((k) => `<li><a class="cell c-${k}" href="${hubHref(lang, mode, k)}" data-ev="hub_${k}">${sart(HUB[k][2])}<span class="cell-t">${esc(hubItem(t, k)[0])}</span><span class="cell-d">${esc(hubItem(t, k)[1])}</span>${icon('arrow', 'ic cell-a')}</a></li>`).join('')}</ul>
   </div></section>`;
 }
 
@@ -31,7 +32,7 @@ export function hubSection(t, lang, mode) {
 export function megaMenu(t, lang, mode) {
   const h = t.hub;
   return `<details class="mega" id="mega"><summary class="btn btn-sm btn-ghost">${icon('menu')}<span>${esc(h.menu)}</span></summary>
-    <div class="mega-panel"><div class="wrap"><ul class="mega-grid">${Object.keys(HUB).map((k) => `<li><a href="${hubHref(lang, mode, k)}" data-ev="mega_${k}">${sart(HUB[k][2])}<span><b>${esc(h.items[k][0])}</b><small>${esc(h.items[k][1])}</small></span></a></li>`).join('')}</ul></div></div>
+    <div class="mega-panel"><div class="wrap"><ul class="mega-grid">${Object.keys(HUB).map((k) => `<li><a href="${hubHref(lang, mode, k)}" data-ev="mega_${k}">${sart(HUB[k][2])}<span><b>${esc(hubItem(t, k)[0])}</b><small>${esc(hubItem(t, k)[1])}</small></span></a></li>`).join('')}</ul></div></div>
   </details>`;
 }
 
