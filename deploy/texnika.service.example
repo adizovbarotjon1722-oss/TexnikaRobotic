@@ -1,0 +1,18 @@
+# systemd: /etc/systemd/system/texnika.service ; keyin: systemctl enable --now texnika
+[Unit]
+Description=Texnika Servis sayti
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/texnika
+EnvironmentFile=/opt/texnika/.env
+ExecStart=/usr/bin/node --disable-warning=ExperimentalWarning server/server.mjs
+Restart=always
+User=texnika
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/data
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
