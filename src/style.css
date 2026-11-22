@@ -1824,3 +1824,14 @@ h2 { font-weight: 600; letter-spacing: -0.015em; line-height: 1.15; }
 
 /* ---------- 15-bosqich: SEO sarlavha qatori ---------- */
 .hero h1 .h1k { display: block; margin-bottom: 1.1rem; font: 500 clamp(0.95rem, 0.6vw + 0.8rem, 1.15rem)/1.4 var(--f-body); letter-spacing: 0; color: var(--muted); max-width: 34ch; padding-left: 0.85rem; border-left: 2px solid var(--accent); text-wrap: balance; }
+
+/* ---------- 15-bosqich: hujjatlar ---------- */
+.doc-parties { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.doc-scroll { overflow-x: auto; }
+.doc-h { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; margin: 22px 0 8px; color: #5b6672; }
+.doc-words { margin: 10px 0 0; font-size: 13.5px; }
+.doc-words span { color: #5b6672; }
+.doc-report .doc-notes:first-of-type h2 { margin-top: 6px; }
+.doc-sign span.doc-sigline { position: relative; height: 56px; }
+.doc-sigimg { position: absolute; left: 8px; bottom: -6px; max-height: 54px; max-width: 160px; }
+.doc-stamp { position: absolute; left: 120px; bottom: -40px; width: 110px; height: 110px; object-fit: contain; opacity: .9; }

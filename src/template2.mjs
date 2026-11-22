@@ -1,6 +1,7 @@
 // 3-bosqich sahifalari: xato kodlari ma'lumotnomasi, uskuna pasporti (QR), tijorat taklifi va dalolatnoma.
 import { layout, esc, icon, url, pageHero, logo, aiFormFor, phoneLock } from './template.mjs';
 import { fmt } from './i18n.mjs';
+import { amountInWords } from './numwords.mjs';
 
 const BRAND_NAME = { KUKA: 'KUKA', ABB: 'ABB', FANUC: 'FANUC', Yaskawa: 'Yaskawa', Siemens: 'Siemens', Danfoss: 'Danfoss', Delta: 'Delta', Inovance: 'Inovance' };
 const crumbsLd = (items) => ({ '@type': 'BreadcrumbList', itemListElement: items.map(([name, item], i) => ({ '@type': 'ListItem', position: i + 1, name, item })) });
@@ -112,9 +113,12 @@ const money = (n, cur) => `${Number(n || 0).toLocaleString('ru-RU', { maximumFra
 export function docTotals(d) {
   const items = d.items || [];
   const subtotal = items.reduce((a, i) => a + (Number(i.qty) || 0) * (Number(i.price) || 0), 0);
-  const vat = d.vat ? Math.round(subtotal * Number(d.vat)) / 100 : 0;
-  return { subtotal, vat, total: subtotal + vat };
+  const discount = d.discount ? Math.round(subtotal * Number(d.discount)) / 100 : 0;
+  const base = subtotal - discount;
+  const vat = d.vat ? Math.round(base * Number(d.vat)) / 100 : 0;
+  return { subtotal, discount, vat, total: base + vat };
 }
+const DOC_TITLE = { quote: 'quote', invoice: 'invoice', act: 'act', report: 'report' };
 export function renderDoc(t, cfg, doc, ver) {
   const lang = doc?.lang || 'uz';
   const k = t.doc;
@@ -122,35 +126,59 @@ export function renderDoc(t, cfg, doc, ver) {
   const d = doc.data;
   const cur = d.currency || 'UZS';
   const tot = docTotals(d);
-  const isQuote = doc.kind === 'quote';
-  const title = isQuote ? k.quote : k.act;
-  const req = [cfg.company_legal || cfg.brand, cfg.company_address, cfg.company_inn ? `INN/STIR ${cfg.company_inn}` : '', cfg.company_bank, cfg.company_account ? `h/r ${cfg.company_account}` : '', cfg.company_mfo ? `MFO ${cfg.company_mfo}` : '', cfg.phone, /@example\./i.test(cfg.email || '') ? '' : cfg.email].filter(Boolean);
+  const kind = DOC_TITLE[doc.kind] ? doc.kind : 'quote';
+  const isQuote = kind === 'quote';
+  const title = k[DOC_TITLE[kind]];
+  const date = d.date || doc.created_at.slice(0, 10);
+  const realMail = cfg.email && !/@example\./i.test(cfg.email);
+  const req = [cfg.company_legal || cfg.brand, cfg.company_address, cfg.company_inn ? `STIR/INN ${cfg.company_inn}` : '', cfg.company_bank, cfg.company_account ? `h/r ${cfg.company_account}` : '', cfg.company_mfo ? `MFO ${cfg.company_mfo}` : '', cfg.phone, realMail ? cfg.email : ''].filter(Boolean);
+  const rp = d.report || {};
+  const block = (h, v) => v ? `<div class="doc-notes"><h2>${esc(h)}</h2><p>${esc(v)}</p></div>` : '';
+  const meta = [
+    [k.no, doc.number], [k.date, date], doc.request_code ? [k.request, doc.request_code] : null,
+    d.contract ? [k.contract, d.contract] : null, d.ref ? [k.ref, d.ref] : null
+  ].filter(Boolean);
+  const hasItems = (d.items || []).length > 0;
+  const table = hasItems ? `
+      ${kind === 'report' ? `<h2 class="doc-h">${esc(k.parts)}</h2>` : ''}
+      <div class="doc-scroll"><table class="doc-table">
+        <thead><tr><th>#</th><th>${esc(k.item)}</th><th>${esc(k.qty)}</th><th>${esc(k.unit)}</th><th>${esc(k.price)}</th><th>${esc(k.sum)}</th></tr></thead>
+        <tbody>${d.items.map((i, n) => `<tr><td>${n + 1}</td><td>${esc(i.name)}</td><td>${esc(i.qty)}</td><td>${esc(i.unit || '')}</td><td>${esc(money(i.price, ''))}</td><td>${esc(money((Number(i.qty) || 0) * (Number(i.price) || 0), ''))}</td></tr>`).join('')}</tbody>
+        <tfoot>
+          <tr><td colspan="5">${esc(k.subtotal)}</td><td>${esc(money(tot.subtotal, cur))}</td></tr>
+          ${tot.discount ? `<tr><td colspan="5">${esc(k.discount)} ${esc(d.discount)}%</td><td>−${esc(money(tot.discount, cur))}</td></tr>` : ''}
+          ${d.vat ? `<tr><td colspan="5">${esc(k.vat)} ${esc(d.vat)}%</td><td>${esc(money(tot.vat, cur))}</td></tr>` : ''}
+          <tr class="doc-total"><td colspan="5">${esc(k.total)}</td><td>${esc(money(tot.total, cur))}</td></tr>
+        </tfoot>
+      </table></div>
+      <p class="doc-words"><span>${esc(k.inWords)}:</span> ${esc(amountInWords(tot.total, cur, lang))}</p>` : '';
+  const sigImg = (src, cls) => src ? `<img class="${cls}" src="${esc(src)}" alt="">` : '';
+  const custSign = kind === 'act' || kind === 'report' || doc.status === 'accepted';
   const body = `<main id="main" class="doc-main"><section class="section section-tight"><div class="wrap">
     <div class="doc-tools">
       <button type="button" class="btn btn-ghost" data-print>${icon('print')}${esc(k.print)}</button>
       ${isQuote && doc.status !== 'accepted' ? `<button type="button" class="btn btn-primary" id="doc-accept" data-token="${esc(doc.token)}" data-ok="${esc(k.accepted)}">${icon('check')}${esc(k.accept)}</button>` : ''}
       ${isQuote && doc.status === 'accepted' ? `<p class="doc-ok">${icon('check')}${esc(k.accepted)}</p>` : ''}
     </div>
-    <article class="doc-sheet">
+    <article class="doc-sheet doc-${kind}">
       <header class="doc-head">
         <div class="doc-brand">${logo}<div><strong>${esc(cfg.company_legal || cfg.brand)}</strong><small>${esc(req.slice(1).join(' · '))}</small></div></div>
-        <div class="doc-no"><h1>${esc(title)}</h1><p>${esc(k.no)} ${esc(doc.number)} · ${esc(k.date)}: ${esc(doc.created_at.slice(0, 10))}</p>${doc.request_code ? `<p>${esc(k.request)}: ${esc(doc.request_code)}</p>` : ''}</div>
+        <div class="doc-no"><h1>${esc(title)}</h1>${meta.map(([a, b]) => `<p>${esc(a)}${a === k.no ? '' : ':'} ${esc(b)}</p>`).join('')}</div>
       </header>
-      <dl class="doc-parties"><div><dt>${esc(k.executor)}</dt><dd>${esc(cfg.company_legal || cfg.brand)}</dd></div><div><dt>${esc(k.customer)}</dt><dd>${esc(d.customer || '—')}</dd></div></dl>
-      ${!isQuote ? `<p class="doc-acttext">${esc(k.actText)}</p>` : ''}
-      <table class="doc-table">
-        <thead><tr><th>#</th><th>${esc(k.item)}</th><th>${esc(k.qty)}</th><th>${esc(k.unit)}</th><th>${esc(k.price)}</th><th>${esc(k.sum)}</th></tr></thead>
-        <tbody>${(d.items || []).map((i, n) => `<tr><td>${n + 1}</td><td>${esc(i.name)}</td><td>${esc(i.qty)}</td><td>${esc(i.unit || '')}</td><td>${esc(money(i.price, ''))}</td><td>${esc(money((Number(i.qty) || 0) * (Number(i.price) || 0), ''))}</td></tr>`).join('')}</tbody>
-        <tfoot>
-          <tr><td colspan="5">${esc(k.subtotal)}</td><td>${esc(money(tot.subtotal, cur))}</td></tr>
-          ${d.vat ? `<tr><td colspan="5">${esc(k.vat)} ${esc(d.vat)}%</td><td>${esc(money(tot.vat, cur))}</td></tr>` : ''}
-          <tr class="doc-total"><td colspan="5">${esc(k.total)}</td><td>${esc(money(tot.total, cur))}</td></tr>
-        </tfoot>
-      </table>
-      ${isQuote && d.valid_days ? `<p class="doc-valid">${esc(k.valid)}: ${esc(d.valid_days)} ${esc(k.days)}</p>` : ''}
-      ${d.notes ? `<div class="doc-notes"><h2>${esc(k.notes)}</h2><p>${esc(d.notes)}</p></div>` : ''}
+      <dl class="doc-parties"><div><dt>${esc(k.executor)}</dt><dd>${esc(cfg.company_legal || cfg.brand)}</dd></div><div><dt>${esc(k.customer)}</dt><dd>${esc(d.customer || '—')}</dd></div>${d.equipment ? `<div><dt>${esc(k.equipment)}</dt><dd>${esc(d.equipment)}</dd></div>` : ''}${d.engineer ? `<div><dt>${esc(k.engineer)}</dt><dd>${esc(d.engineer)}</dd></div>` : ''}</dl>
+      ${kind === 'act' ? `<p class="doc-acttext">${esc(k.actText)}</p>` : ''}
+      ${kind === 'invoice' ? `<p class="doc-acttext">${esc(k.invoiceText)}</p>` : ''}
+      ${kind === 'report' ? `${block(k.symptom, rp.symptom)}${block(k.cause, rp.cause)}${block(k.work, rp.work)}` : ''}
+      ${table}
+      ${kind === 'report' ? `${block(k.recommend, rp.recommend)}${rp.next_date ? `<p class="doc-valid"><b>${esc(k.nextDate)}:</b> ${esc(rp.next_date)}</p>` : ''}` : ''}
+      ${isQuote && d.valid_days ? `<p class="doc-valid"><b>${esc(k.valid)}:</b> ${esc(d.valid_days)} ${esc(k.days)}</p>` : ''}
+      ${kind === 'invoice' && d.due_days ? `<p class="doc-valid"><b>${esc(k.due)}:</b> ${esc(fmt(k.dueText, { n: d.due_days }))}</p>` : ''}
+      ${d.notes ? block(k.notes, d.notes) : ''}
       <div class="doc-req"><h2>${esc(k.requisites)}</h2><p>${req.map(esc).join('<br>')}</p></div>
-      <div class="doc-sign"><div><span></span><small>${esc(k.signExec)}</small></div>${!isQuote || doc.status === 'accepted' ? `<div><span></span><small>${esc(k.signCust)}</small></div>` : ''}</div>
+      <div class="doc-sign">
+        <div><span class="doc-sigline">${sigImg(cfg.docSign, 'doc-sigimg')}${sigImg(cfg.docStamp, 'doc-stamp')}</span><small>${esc(k.signExec)}${cfg.docStamp ? '' : ` · ${esc(k.stamp)}`}</small></div>
+        ${custSign ? `<div><span class="doc-sigline"></span><small>${esc(k.signCust)} · ${esc(k.stamp)}</small></div>` : ''}
+      </div>
     </article>
   </div></section></main>`;
   return layout({ lang, t, cfg, sub: '', title: `${title} ${doc.number} | ${cfg.brand}`, description: title, body, noindex: true, assetVer: ver, bodyClass: 'is-doc' });

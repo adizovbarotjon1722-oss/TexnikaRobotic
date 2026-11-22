@@ -44,6 +44,7 @@ const fileCfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'site.config.json'), 
 const SETTING_KEYS = ['brand', 'engineerName', 'phone', 'whatsapp', 'telegram', 'email', 'city_uz', 'city_ru', 'city_en', 'responseHours', 'domain',
   'company_legal', 'company_address', 'company_inn', 'company_bank', 'company_account', 'company_mfo', 'googleVerify', 'yandexVerify', 'admin_tg_ids', 'warrantyMonths', 'partsMonths'];
 const EXTRA_KEYS = SETTING_KEYS.slice(11);
+const HOME_SECTIONS = ['stats', 'services', 'quality', 'plc', 'monitoring', 'brands', 'process', 'downtime', 'plans', 'warranty', 'support', 'portfolio', 'errors', 'reviews', 'faq'];
 let BOT_USERNAME = '';
 let heroOf = () => '';
 function cfg() {
@@ -53,6 +54,7 @@ function cfg() {
   for (const l of LANGS) if (s[`city_${l}`]) c.city[l] = s[`city_${l}`];
   c.domain = (process.env.PUBLIC_URL || s.domain || fileCfg.domain).replace(/\/+$/, '');
   for (const k of EXTRA_KEYS) c[k] = s[k] || '';
+  c.hiddenSections = J(getSetting('hidden_sections', '[]'), []);
   c.googleVerify ||= process.env.GOOGLE_SITE_VERIFICATION || '';
   c.yandexVerify ||= process.env.YANDEX_VERIFICATION || '';
   // Search Console "HTML fayl" usuli: google1234abcd.html yoki yandex_1234abcd.html nomi berilsa, shu fayl beriladi
@@ -386,7 +388,7 @@ function tgShell(res) {
 // Mini App matnlari (3 tilda) va holat nomlari
 function tgI18n(res) {
   const out = {};
-  for (const l of LANGS) { const t = T(l); out[l] = { ...t.tgx.app, ...t.tg4.app, wActive: t.warranty.trackLine, wExpired: t.warranty.expired, status: t.track.s, p: t.ai.p, eq: t.eq, doc: { quote: t.doc.quote, act: t.doc.act, accepted: t.doc.accepted }, sev: t.errors.sev, causes: t.errors.causes, checks: t.errors.checks, ai: { title: t.tgx.aiTitle, steps: t.tgx.steps } }; }
+  for (const l of LANGS) { const t = T(l); out[l] = { ...t.tgx.app, ...t.tg4.app, wActive: t.warranty.trackLine, wExpired: t.warranty.expired, status: t.track.s, p: t.ai.p, eq: t.eq, doc: { quote: t.doc.quote, act: t.doc.act, invoice: t.doc.invoice, report: t.doc.report, accepted: t.doc.accepted }, sev: t.errors.sev, causes: t.errors.causes, checks: t.errors.checks, ai: { title: t.tgx.aiTitle, steps: t.tgx.steps } }; }
   json(res, 200, out, { 'Cache-Control': 'public, max-age=300' });
 }
 
@@ -592,6 +594,24 @@ async function adminApi(req, res, p, sess) {
       if (k === 'warrantyMonths' || k === 'partsMonths') v = v ? String(Math.min(Math.max(parseInt(v, 10) || 3, 1), 60)) : '';
       if (k === 'admin_tg_ids') v = v.split(/[\s,]+/).filter((x) => /^-?\d{3,20}$/.test(x)).join(',');
       setSetting(k, v);
+    }
+    return json(res, 200, { ok: true });
+  }
+  if (p === '/sections' && method === 'GET') return json(res, 200, { hidden: J(getSetting('hidden_sections', '[]'), []) });
+  if (p === '/sections' && method === 'POST') {
+    const b = await readJson(req);
+    const hidden = (Array.isArray(b.hidden) ? b.hidden : []).filter((k) => HOME_SECTIONS.includes(k));
+    setSetting('hidden_sections', JSON.stringify(hidden));
+    return json(res, 200, { ok: true, hidden });
+  }
+  if (p === '/doc-assets' && method === 'GET') return json(res, 200, { sign: getSetting('doc_sign', ''), stamp: getSetting('doc_stamp', '') });
+  if (p === '/doc-assets' && method === 'POST') {
+    const b = await readJson(req, 900 * 1024);
+    for (const k of ['sign', 'stamp']) {
+      if (!(k in b)) continue;
+      const v = String(b[k] || '');
+      if (v && (!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(v) || v.length > 400 * 1024)) return json(res, 400, { error: 'image' });
+      setSetting(`doc_${k}`, v);
     }
     return json(res, 200, { ok: true });
   }

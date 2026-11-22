@@ -324,7 +324,7 @@
       view.appendChild(h('h1', { class: 'title', text: L('docs') }));
       view.appendChild(list.length ? h('div', { class: 'list' }, list.map(function (d) {
         return h('a', { class: 'item', href: d.url, onclick: function (ev) { ev.preventDefault(); try { TG.openLink(location.origin + d.url); } catch (e) { location.href = d.url; } } },
-          h('div', { class: 'item-top' }, h('b', { text: (d.kind === 'quote' ? S.L.doc.quote : S.L.doc.act) + ' ' + d.number }), d.status === 'accepted' ? h('span', { class: 'st st-done', text: S.L.doc.accepted }) : null),
+          h('div', { class: 'item-top' }, h('b', { text: (S.L.doc[d.kind] || S.L.doc.quote) + ' ' + d.number }), d.status === 'accepted' ? h('span', { class: 'st st-done', text: S.L.doc.accepted }) : null),
           h('div', { class: 'item-meta' }, h('time', { text: day(d.created_at) }), h('b', { text: money(d.total, d.currency) })));
       })) : empty());
     });

@@ -332,6 +332,25 @@ try {
   const hm = await (await get('/')).text();
   ok(hm.includes('id="monitoring"') && hm.includes('href="/monitoring/"') && /name="keywords" content="[^"]*SCADA/.test(hm), 'monitoring: bosh sahifa bloki, menyu va kalit so‘zlar');
   ok((await (await get('/sitemap.xml')).text()).includes('/monitoring/'), 'monitoring: sitemap’da bor');
+  // 15-bosqich: SEO sarlavha, bo‘limlarni yashirish, yangi hujjat turlari
+  ok(/<h1[^>]*><span class="h1k">PLC servis/.test(hm) && /<title>PLC servis/.test(hm), 'SEO: sarlavha va H1 da “PLC servis”');
+  ok((await post('/admin/api/sections', { hidden: ['plans', 'yomon'] }, A)).status === 200, 'bo‘limlar: saqlandi');
+  const hm2 = await (await get('/')).text();
+  ok(!hm2.includes('id="plans"') && hm2.includes('id="faq"') && hm2.includes('id="contact"'), 'bo‘limlar: yashirilgan bo‘lim chiqmaydi');
+  await post('/admin/api/sections', { hidden: [] }, A);
+  ok((await (await get('/')).text()).includes('id="plans"'), 'bo‘limlar: qayta ko‘rsatildi');
+  const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  ok((await post('/admin/api/doc-assets', { sign: 'javascript:alert(1)' }, A)).status === 400, 'imzo: faqat rasm qabul qilinadi');
+  ok((await post('/admin/api/doc-assets', { sign: png, stamp: png }, A)).status === 200, 'imzo va muhr saqlandi');
+  const rr = await (await post('/admin/api/docs', { kind: 'report', lang: 'uz', customer: 'Sinov MChJ', equipment: 'KUKA KR 210', report: { symptom: 'Robot to‘xtadi', cause: 'Kabel uzilgan', work: 'Kabel almashtirildi', next_date: '2027-05-01' }, items: [{ name: 'Enkoder kabeli', qty: 1, unit: 'dona', price: 1250000 }], discount: 10 }, A)).json();
+  const rdoc = await (await get(`/admin/api/docs/${rr.id}`, { Cookie: cookie })).json();
+  ok(/^SH-\d{4}-\d{4}$/.test(rdoc.number) && rdoc.data.report.cause === 'Kabel uzilgan' && rdoc.data.discount === 10, 'servis hisoboti yaratildi');
+  await post(`/admin/api/docs/${rr.id}/send`, {}, A);
+  const rp = await (await get(`/doc/${rdoc.token}/`)).text();
+  ok(rp.includes('Servis hisoboti') && rp.includes('Kabel uzilgan') && rp.includes('1 125 000') && rp.includes('Bir million bir yuz yigirma besh ming so‘m') && rp.includes('class="doc-stamp"') && !/style="/.test(rp), 'servis hisoboti sahifasi: chegirma, summa so‘z bilan, muhr');
+  const cp = await (await post(`/admin/api/docs/${rr.id}/copy`, { kind: 'invoice' }, A)).json();
+  const inv = await (await get(`/admin/api/docs/${cp.id}`, { Cookie: cookie })).json();
+  ok(/^HS-/.test(inv.number) && inv.status === 'draft' && inv.data.ref === rdoc.number && inv.data.items.length === 1, 'hisobdan nusxa: to‘lov uchun hisob');
   ok(/name="keywords"/.test(await (await get('/support/')).text()) && /name="keywords"/.test(await (await get('/academy/')).text()), 'kalit so‘zlar: ichki sahifalarda');
 } catch (e) { console.error(e); fail++; } finally {
   try { sdb?.close(); } catch {}

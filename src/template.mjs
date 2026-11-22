@@ -253,6 +253,7 @@ export function portfolioCard(t, lang, p, mode) {
 }
 
 function home(t, lang, cfg, data, mode) {
+  const hid = new Set(cfg.hiddenSections || []); const on = (k) => !hid.has(k);
   const allBrands = [...brands.robots, ...brands.german, ...brands.chinese, ...brands.other];
   const pf = (data.portfolio || []).filter((p) => !p.sample).slice(0, 3);
   const planHref = [`#contact`, `#contact`, mode === 'preview' ? '#' : url(lang, 'academy/')];
@@ -275,26 +276,26 @@ function home(t, lang, cfg, data, mode) {
     </div>
   </section>
 
-  <section class="stats" aria-label="${esc(cfg.brand)}"><div class="wrap"><dl class="stats-grid">${t.stats.map((s) => `<div class="stat reveal"><dt class="stat-v"><span class="num" data-count="${esc(s.v)}">${esc(s.v)}</span><span class="suf">${esc(s.s)}</span></dt><dd>${esc(s.l)}</dd></div>`).join('')}</dl></div></section>
+  ${on('stats') ? `<section class="stats" aria-label="${esc(cfg.brand)}"><div class="wrap"><dl class="stats-grid">${t.stats.map((s) => `<div class="stat reveal"><dt class="stat-v"><span class="num" data-count="${esc(s.v)}">${esc(s.v)}</span><span class="suf">${esc(s.s)}</span></dt><dd>${esc(s.l)}</dd></div>`).join('')}</dl></div></section>` : ''}
 
-  <section class="section" id="services" aria-labelledby="services-title">
+  ${on('services') ? `<section class="section" id="services" aria-labelledby="services-title">
     <div class="wrap">
       ${secHead(t.services.eyebrow, t.services.title, t.services.lead, 'services-title', '', 'gears')}
       <ul class="svc-grid">${t.services.items.map((s) => `<li class="svc reveal"><div class="svc-ic">${icon(s.icon)}</div><h3>${esc(s.title)}</h3><p>${esc(s.text)}</p><ul class="tags">${s.tags.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></li>`).join('')}</ul>
       <div class="extra reveal"><div class="extra-head"><p class="eyebrow">${esc(t.extra.eyebrow)}</p><h3>${esc(t.extra.title)}</h3></div><ul class="extra-list">${t.extra.items.map((x) => `<li>${icon('plus')}<div><h4>${esc(x.title)}</h4><p>${esc(x.text)}</p></div></li>`).join('')}</ul></div>
     </div>
-  </section>
+  </section>` : ''}
 
-  ${homeQuality(t)}
+  ${on('quality') ? homeQuality(t) : ''}
 
-  ${homePlc(t, lang, cfg, mode)}
-  ${homeMonitoring(t, lang, mode)}
+  ${on('plc') ? homePlc(t, lang, cfg, mode) : ''}
+  ${on('monitoring') ? homeMonitoring(t, lang, mode) : ''}
 
-  <section class="brands" aria-labelledby="brands-title">
+  ${on('brands') ? `<section class="brands" aria-labelledby="brands-title">
     <div class="wrap"><h2 id="brands-title" class="brands-title">${esc(t.brandsBlock.title)}</h2></div>
     <div class="wrap"><ul class="brand-list">${allBrands.map((b) => `<li>${esc(b)}</li>`).join('')}</ul></div>
     <div class="wrap"><p class="brands-note">${esc(t.brandsBlock.note)}</p></div>
-  </section>
+  </section>` : ''}
 
   <section class="section contact" id="contact" aria-labelledby="contact-title">
     <div class="wrap contact-in">
@@ -314,35 +315,35 @@ function home(t, lang, cfg, data, mode) {
     </div>
   </section>
 
-  <section class="section section-alt" id="process" aria-labelledby="process-title">
+  ${on('process') ? `<section class="section section-alt" id="process" aria-labelledby="process-title">
     <div class="wrap">
       ${secHead(t.process.eyebrow, t.process.title, '', 'process-title', '', 'conveyor')}
       <ol class="steps">${t.process.steps.map((s, i) => `<li class="step reveal"><span class="step-n">0${i + 1}</span><h3>${esc(s.title)}</h3><p>${esc(s.text)}</p></li>`).join('')}</ol>
     </div>
-  </section>
+  </section>` : ''}
 
-  ${homeDowntime(t, lang)}
+  ${on('downtime') ? homeDowntime(t, lang) : ''}
 
-  <section class="section" id="plans" aria-labelledby="plans-title">
+  ${on('plans') ? `<section class="section" id="plans" aria-labelledby="plans-title">
     <div class="wrap">
       ${secHead(t.plans.eyebrow, t.plans.title, '', 'plans-title', '', 'clip')}
       <ul class="plans">${t.plans.items.map((p, i) => `<li class="plan reveal${p.featured ? ' is-featured' : ''}">${p.featured ? `<span class="plan-flag">${esc(p.featured)}</span>` : ''}<h3>${esc(p.name)}</h3><p class="plan-for">${esc(p.for)}</p><ul>${p.points.map((x) => `<li>${icon('check')}${esc(x)}</li>`).join('')}</ul><a class="btn ${p.featured ? 'btn-primary' : 'btn-ghost'}" href="${planHref[i]}" data-ev="plan_${i}">${esc(p.cta)}</a></li>`).join('')}</ul>
       <p class="plans-note">${icon('shield')}${esc(t.plans.note)}</p>
     </div>
-  </section>
+  </section>` : ''}
 
-  ${homeWarranty(t, lang, cfg, mode)}
+  ${on('warranty') ? homeWarranty(t, lang, cfg, mode) : ''}
 
-  ${homeSupport(t, lang, cfg, mode)}
+  ${on('support') ? homeSupport(t, lang, cfg, mode) : ''}
 
-  ${pf.length ? `<section class="section" id="portfolio" aria-labelledby="pf-title">
+  ${pf.length && on('portfolio') ? `<section class="section" id="portfolio" aria-labelledby="pf-title">
     <div class="wrap">
       <div class="sec-head-row">${secHead(t.portfolio.eyebrow, t.portfolio.title, t.portfolio.lead, 'pf-title', '', 'caliper')}<a class="btn btn-ghost" href="${mode === 'preview' ? '#' : url(lang, 'portfolio/')}">${esc(t.portfolio.all)}${icon('arrow')}</a></div>
       <ul class="pf-grid">${pf.map((p) => portfolioCard(t, lang, p, mode)).join('')}</ul>
     </div>
   </section>` : ''}
 
-  ${(data.errors || []).length ? `<section class="section err-band" id="errors" aria-labelledby="err-title">
+  ${(data.errors || []).length && on('errors') ? `<section class="section err-band" id="errors" aria-labelledby="err-title">
     <div class="wrap err-in">
       <div class="reveal">${secHead(t.errors.homeEyebrow, t.errors.homeTitle, t.errors.homeLead, 'err-title', '', 'alarm')}</div>
       <div class="reveal err-box">
@@ -356,17 +357,17 @@ function home(t, lang, cfg, data, mode) {
     </div>
   </section>` : ''}
 
-  ${(data.reviews || []).length ? `<section class="section reviews-band" id="reviews" aria-labelledby="rv-title"><div class="wrap">
+  ${(data.reviews || []).length && on('reviews') ? `<section class="section reviews-band" id="reviews" aria-labelledby="rv-title"><div class="wrap">
     ${secHead(t.reviews.eyebrow, t.reviews.title, t.reviews.lead, 'rv-title', '', 'stars')}${data.reviewSummary?.n ? `<p class="rv-sum"><b>${esc(data.reviewSummary.avg)}</b><span class="rv-stars" aria-hidden="true">${'★'.repeat(Math.round(data.reviewSummary.avg))}</span><small>${esc(fmt(t.reviews.stars, { n: data.reviewSummary.avg }))} · ${esc(data.reviewSummary.n)}</small></p>` : ''}
     <ul class="rv-list">${data.reviews.map((r) => `<li class="rv reveal"><p class="rv-stars" aria-label="${esc(fmt(t.reviews.stars, { n: r.rating }))}">${'★'.repeat(r.rating)}<span>${'★'.repeat(5 - r.rating)}</span></p><blockquote>${esc(r.text)}</blockquote><p class="rv-who">${esc([r.name, r.company].filter(Boolean).join(' · '))}<time>${esc(String(r.created_at).slice(0, 7))}</time></p></li>`).join('')}</ul>
   </div></section>` : ''}
 
-  <section class="section section-alt" id="faq" aria-labelledby="faq-title">
+  ${on('faq') ? `<section class="section section-alt" id="faq" aria-labelledby="faq-title">
     <div class="wrap narrow">
       ${secHead(t.faq.eyebrow, t.faq.title, '', 'faq-title', '', 'magnifier')}
       <div class="faq">${t.faq.items.map((f, i) => `<details class="qa reveal"${i === 0 ? ' open' : ''}><summary><span>${esc(f.q)}</span>${icon('plus', 'ic qa-ic')}</summary><p>${esc(f.a)}</p></details>`).join('')}</div>
     </div>
-  </section>
+  </section>` : ''}
 </main>`;
 }
 

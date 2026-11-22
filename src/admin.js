@@ -297,6 +297,7 @@
       h('a', { class: 'btn btn-ghost', href: `/${r.lang && r.lang !== 'uz' ? r.lang + '/' : ''}track/#${r.code}`, target: '_blank', rel: 'noopener', text: 'Mijoz sahifasi ↗' }),
       h('button', { type: 'button', class: 'btn btn-ghost', text: 'Taklif tuzish', onclick: () => docFromRequest(r, 'quote') }),
       h('button', { type: 'button', class: 'btn btn-ghost', text: 'Dalolatnoma', onclick: () => docFromRequest(r, 'act') }),
+      h('button', { type: 'button', class: 'btn btn-ghost', text: 'Servis hisoboti', onclick: () => docFromRequest(r, 'report') }),
       r.equipment_id ? h('a', { class: 'btn btn-ghost', href: `#eq/${r.equipment_id}`, text: 'Uskuna' }) : null));
 
     const info = h('dl', { class: 'facts' }, [['Mijoz', r.name], ['Telefon', r.phone], ['Korxona', r.company], ['Xizmat', r.service], ['Uskuna', r.equipment], ['Manba', r.source]].filter(([, v]) => v).map(([k, v]) => [h('dt', { text: k }), h('dd', { text: v })]));
@@ -919,64 +920,125 @@
   }
 
   /* ---------- Hujjatlar: tijorat taklifi va dalolatnoma ---------- */
-  const DOCK = { quote: 'Tijorat taklifi', act: 'Bajarilgan ishlar dalolatnomasi' };
-  const DOCS = { draft: 'Qoralama', sent: 'Yuborilgan', accepted: 'Qabul qilingan' };
+  const DOCK = { quote: 'Tijorat taklifi', invoice: 'To‘lov uchun hisob', act: 'Bajarilgan ishlar dalolatnomasi', report: 'Servis hisoboti' };
+  const DOCS = { draft: 'Qoralama', sent: 'Yuborilgan', accepted: 'Qabul qilingan', paid: 'To‘langan' };
+  const DOCPILL = { draft: 'new', sent: 'scheduled', accepted: 'done', paid: 'done' };
+  const docSum = (data) => {
+    const sub = (data.items || []).reduce((a, i) => a + (Number(i.qty) || 0) * (Number(i.price) || 0), 0);
+    const base = sub - Math.round(sub * (Number(data.discount) || 0)) / 100;
+    return Math.round(base * (1 + (Number(data.vat) || 0) / 100));
+  };
+  let docFilter = { kind: '', status: '', q: '' };
   async function viewDocs(arg) {
     if (arg) return docEdit(arg === 'new' ? null : +arg);
-    main.append(head('Hujjatlar', 'Tijorat taklifi va dalolatnoma: uch tilda, chop etish va PDF saqlash uchun tayyor. Mijozga Telegram yoki email orqali havola yuboriladi.', h('a', { class: 'btn btn-primary', href: '#docs/new', text: '+ Yangi hujjat' })));
+    main.append(head('Hujjatlar', 'Tijorat taklifi, to‘lov uchun hisob, dalolatnoma va servis hisoboti: uch tilda, summa so‘z bilan, imzo va muhr bilan. Mijozga havola Telegram yoki email orqali yuboriladi.', h('a', { class: 'btn btn-primary', href: '#docs/new', text: '+ Yangi hujjat' })));
     const box = h('div', {}, loading()); main.append(box);
     let rows; try { rows = await api('/docs'); } catch (e) { clear(box).append(h('p', { class: 'err', text: errText(e) })); return; }
     clear(box);
-    if (!rows.length) return box.append(empty('Hali hujjat yo‘q. Ariza sahifasidan “Taklif tuzish” tugmasi bilan ham yaratish mumkin.'));
-    box.append(h('table', { class: 'tbl' },
-      h('thead', {}, h('tr', {}, ['Raqam', 'Turi', 'Mijoz', 'Ariza', 'Jami', 'Holat', 'Sana'].map((c) => h('th', { text: c })))),
-      h('tbody', {}, rows.map((d) => h('tr', { class: 'row-link', tabindex: '0', onclick: () => { location.hash = `docs/${d.id}`; } },
-        h('td', { class: 'mono', text: d.number }), h('td', { text: DOCK[d.kind] }), h('td', { text: d.data.customer || d.company || '—' }), h('td', { class: 'mono', text: d.request_code || '—' }),
-        h('td', { class: 'nowrap', text: `${num(d.total)} ${d.data.currency || ''}` }), h('td', {}, h('span', { class: `pill st-${d.status === 'accepted' ? 'done' : d.status === 'sent' ? 'scheduled' : 'new'}`, text: DOCS[d.status] })), h('td', { class: 'nowrap', text: fmtDate(d.created_at) }))))));
+    if (!rows.length) return box.append(empty('Hali hujjat yo‘q. Ariza sahifasidan “Taklif tuzish” yoki “Servis hisoboti” tugmasi bilan ham yaratish mumkin.'));
+    const fk = h('select', { 'aria-label': 'Turi' }, h('option', { value: '', text: 'Barcha turlar' }), Object.entries(DOCK).map(([k, v]) => h('option', { value: k, text: v }))); fk.value = docFilter.kind;
+    const fs = h('select', { 'aria-label': 'Holat' }, h('option', { value: '', text: 'Barcha holatlar' }), Object.entries(DOCS).map(([k, v]) => h('option', { value: k, text: v }))); fs.value = docFilter.status;
+    const fq = h('input', { type: 'search', placeholder: 'Raqam, mijoz yoki ariza bo‘yicha qidirish', value: docFilter.q, 'aria-label': 'Qidirish' });
+    const sumBox = h('p', { class: 'muted doc-sum' });
+    const tb = h('tbody');
+    const draw = () => {
+      docFilter = { kind: fk.value, status: fs.value, q: fq.value.trim().toLowerCase() };
+      const list = rows.filter((d) => (!docFilter.kind || d.kind === docFilter.kind) && (!docFilter.status || d.status === docFilter.status)
+        && (!docFilter.q || [d.number, d.data.customer, d.company, d.request_code, d.data.equipment].join(' ').toLowerCase().includes(docFilter.q)));
+      const byCur = {};
+      for (const d of list) { const c = d.data.currency || 'UZS'; byCur[c] = (byCur[c] || 0) + (Number(d.total) || 0); }
+      sumBox.textContent = `${list.length} ta hujjat · jami: ${Object.entries(byCur).map(([c, v]) => `${num(Math.round(v))} ${c}`).join(', ') || '0'}`;
+      clear(tb).append(...(list.length ? list.map((d) => h('tr', { class: 'row-link', tabindex: '0', onclick: () => { location.hash = `docs/${d.id}`; }, onkeydown: (e) => { if (e.key === 'Enter') location.hash = `docs/${d.id}`; } },
+        h('td', { class: 'mono', text: d.number }), h('td', { text: DOCK[d.kind] || d.kind }), h('td', { text: d.data.customer || d.company || '—' }), h('td', { class: 'mono', text: d.request_code || '—' }),
+        h('td', { class: 'nowrap', text: `${num(d.total)} ${d.data.currency || ''}` }), h('td', {}, h('span', { class: `pill st-${DOCPILL[d.status] || 'new'}`, text: DOCS[d.status] || d.status })), h('td', { class: 'nowrap', text: fmtDate(d.data.date || d.created_at) })))
+        : [h('tr', {}, h('td', { colspan: '7', class: 'muted', text: 'Filtrga mos hujjat yo‘q' }))]));
+    };
+    for (const el of [fk, fs]) el.addEventListener('change', draw);
+    fq.addEventListener('input', draw);
+    box.append(h('div', { class: 'filters' }, fk, fs, fq), sumBox,
+      h('div', { class: 'tbl-scroll' }, h('table', { class: 'tbl' }, h('thead', {}, h('tr', {}, ['Raqam', 'Turi', 'Mijoz', 'Ariza', 'Jami', 'Holat', 'Sana'].map((c) => h('th', { text: c })))), tb)));
+    draw();
   }
   async function docEdit(id, preset) {
     main.append(h('a', { href: '#docs', class: 'back', text: '← Hujjatlar' }));
     let d = preset || { kind: 'quote', lang: 'uz', status: 'draft', data: { items: [{ name: '', qty: 1, unit: 'xizmat', price: 0 }], currency: 'UZS', vat: 0, valid_days: 10 } };
-    let custs = [];
-    try { [custs, d] = await Promise.all([api('/customers'), id ? api(`/docs/${id}`) : Promise.resolve(d)]); } catch (e) { return main.append(h('p', { class: 'err', text: errText(e) })); }
+    let custs = [], all = [];
+    try { [custs, d, all] = await Promise.all([api('/customers'), id ? api(`/docs/${id}`) : Promise.resolve(d), api('/docs').catch(() => [])]); } catch (e) { return main.append(h('p', { class: 'err', text: errText(e) })); }
+    const dd = d.data || {};
+    const rp = dd.report || {};
+    // Avvalgi hujjatlardagi qatorlar: nomini yozganda birlik va oxirgi narx avtomatik qo‘yiladi
+    const catalog = new Map();
+    for (const x of all.slice().reverse()) for (const it of x.data.items || []) if (it.name) catalog.set(it.name, it);
+    const dlId = 'doc-items-dl';
+    const dl = h('datalist', { id: dlId }, [...catalog.keys()].slice(-300).map((n) => h('option', { value: n })));
     const kind = h('select', {}, Object.entries(DOCK).map(([k, v]) => h('option', { value: k, text: v }))); kind.value = d.kind;
     const lang = h('select', {}, LANGS.map((l) => h('option', { value: l, text: LANG_NAME[l] }))); lang.value = d.lang;
+    const status = h('select', {}, Object.entries(DOCS).map(([k, v]) => h('option', { value: k, text: v }))); status.value = d.status || 'draft';
     const cust = h('select', {}, h('option', { value: '', text: '— Ro‘yxatdan tanlanmagan —' }), custs.map((c) => h('option', { value: String(c.id), text: c.company }))); cust.value = d.customer_id ? String(d.customer_id) : '';
-    const custName = h('input', { type: 'text', maxlength: '200', value: d.data.customer || '', placeholder: '“Navoiy Avto” MChJ' });
-    const cur = h('select', {}, ['UZS', 'USD', 'EUR', 'RUB'].map((c) => h('option', { value: c, text: c }))); cur.value = d.data.currency || 'UZS';
-    const vat = h('input', { type: 'number', min: '0', max: '30', step: '1', value: d.data.vat || 0 });
-    const valid = h('input', { type: 'number', min: '0', max: '365', value: d.data.valid_days || 0 });
-    const notes = h('textarea', { rows: '3', maxlength: '3000', value: d.data.notes || '', placeholder: 'To‘lov sharti, kafolat muddati, ish muddati…' });
+    const custName = h('input', { type: 'text', maxlength: '200', value: dd.customer || '', placeholder: '“Navoiy Avto” MChJ' });
+    const date = h('input', { type: 'date', value: dd.date || (d.created_at || new Date().toISOString()).slice(0, 10) });
+    const contract = h('input', { type: 'text', maxlength: '120', value: dd.contract || '', placeholder: '№ 12/2026, 05.01.2026' });
+    const equipment = h('input', { type: 'text', maxlength: '200', value: dd.equipment || '', placeholder: 'KUKA KR 210 R2700, S/N 123456' });
+    const engineer = h('input', { type: 'text', maxlength: '120', value: dd.engineer || '' });
+    const cur = h('select', {}, ['UZS', 'USD', 'EUR', 'RUB'].map((c) => h('option', { value: c, text: c }))); cur.value = dd.currency || 'UZS';
+    const vat = h('input', { type: 'number', min: '0', max: '30', step: '1', value: dd.vat || 0 });
+    const disc = h('input', { type: 'number', min: '0', max: '100', step: 'any', value: dd.discount || 0 });
+    const valid = h('input', { type: 'number', min: '0', max: '365', value: dd.valid_days || 0 });
+    const due = h('input', { type: 'number', min: '0', max: '365', value: dd.due_days || 0 });
+    const notes = h('textarea', { rows: '3', maxlength: '3000', value: dd.notes || '', placeholder: 'To‘lov sharti, kafolat muddati, ish muddati…' });
+    const ta = (v, ph) => h('textarea', { rows: '3', maxlength: '4000', value: v || '', placeholder: ph });
+    const rs = { symptom: ta(rp.symptom, 'Liniya to‘xtagan, SRVO-050 xatosi…'), cause: ta(rp.cause, 'J3 o‘qi enkoder kabeli shikastlangan…'), work: ta(rp.work, 'Kabel almashtirildi, mastering bajarildi, 2 soat sinov…'), recommend: ta(rp.recommend, 'Kabel paketini 6 oyda bir ko‘rikdan o‘tkazish…') };
+    const nextDate = h('input', { type: 'date', value: rp.next_date || '' });
     const total = h('b', { class: 'doc-total' });
     const itemsBox = h('tbody');
     const items = [];
     const recalc = () => {
       const sub = items.reduce((a, it) => a + (Number(it.qty.value) || 0) * (Number(it.price.value) || 0), 0);
-      total.textContent = `Jami: ${num(Math.round(sub * (1 + (Number(vat.value) || 0) / 100)))} ${cur.value}`;
+      const base = sub - Math.round(sub * (Number(disc.value) || 0)) / 100;
+      total.textContent = `Jami: ${num(Math.round(base * (1 + (Number(vat.value) || 0) / 100)))} ${cur.value}`;
     };
     const addItem = (it = { name: '', qty: 1, unit: '', price: 0 }) => {
-      const o = { name: h('input', { type: 'text', maxlength: '300', value: it.name, placeholder: 'Ish yoki ehtiyot qism', 'aria-label': 'Nomi' }), qty: h('input', { type: 'number', min: '0', step: 'any', value: it.qty, 'aria-label': 'Miqdor' }), unit: h('input', { type: 'text', maxlength: '20', value: it.unit, 'aria-label': 'O‘lchov' }), price: h('input', { type: 'number', min: '0', step: 'any', value: it.price, 'aria-label': 'Narx' }) };
+      const o = { name: h('input', { type: 'text', maxlength: '300', value: it.name, list: dlId, placeholder: 'Ish yoki ehtiyot qism', 'aria-label': 'Nomi' }), qty: h('input', { type: 'number', min: '0', step: 'any', value: it.qty, 'aria-label': 'Miqdor' }), unit: h('input', { type: 'text', maxlength: '20', value: it.unit, 'aria-label': 'O‘lchov' }), price: h('input', { type: 'number', min: '0', step: 'any', value: it.price, 'aria-label': 'Narx' }) };
+      o.name.addEventListener('change', () => { const c = catalog.get(o.name.value.trim()); if (c) { if (!o.unit.value) o.unit.value = c.unit || ''; if (!Number(o.price.value)) o.price.value = c.price || 0; recalc(); } });
       const tr = h('tr', {}, h('td', {}, o.name), h('td', { class: 'w-s' }, o.qty), h('td', { class: 'w-s' }, o.unit), h('td', { class: 'w-m' }, o.price), h('td', {}, h('button', { type: 'button', class: 'btn-x', text: '✕', title: 'O‘chirish', onclick: () => { items.splice(items.indexOf(o), 1); tr.remove(); recalc(); } })));
       for (const k of ['qty', 'price']) o[k].addEventListener('input', recalc);
       items.push(o); itemsBox.append(tr); recalc();
     };
-    (d.data.items || []).forEach(addItem);
-    vat.addEventListener('input', recalc); cur.addEventListener('change', recalc);
-    const body = () => ({ kind: kind.value, lang: lang.value, customer_id: cust.value, customer: custName.value.trim(), request_id: d.request_id || '', currency: cur.value, vat: vat.value, valid_days: valid.value, notes: notes.value.trim(), status: d.status, items: items.map((o) => ({ name: o.name.value.trim(), qty: o.qty.value, unit: o.unit.value.trim(), price: o.price.value })) });
+    (dd.items || []).forEach(addItem);
+    for (const el of [vat, disc]) el.addEventListener('input', recalc);
+    cur.addEventListener('change', recalc);
+    const body = () => ({ kind: kind.value, lang: lang.value, customer_id: cust.value, customer: custName.value.trim(), request_id: d.request_id || '', currency: cur.value, vat: vat.value, discount: disc.value, valid_days: valid.value, due_days: due.value,
+      date: date.value, contract: contract.value.trim(), ref: dd.ref || '', equipment: equipment.value.trim(), engineer: engineer.value.trim(), notes: notes.value.trim(), status: status.value,
+      report: { ...Object.fromEntries(Object.entries(rs).map(([k, v]) => [k, v.value.trim()])), next_date: nextDate.value },
+      items: items.map((o) => ({ name: o.name.value.trim(), qty: o.qty.value, unit: o.unit.value.trim(), price: o.price.value })) });
+    // Turga qarab kerakli maydonlarni ko‘rsatish
+    const fValid = field('Taklif amal qiladi (kun)', valid), fDue = field('To‘lov muddati (kun)', due, 'Hisobda “… kun ichida” deb yoziladi');
+    const repCard = h('div', { class: 'card' }, h('h2', { text: 'Servis hisoboti' }), field('Murojaat sababi va belgilar', rs.symptom), field('Aniqlangan sabab', rs.cause), field('Bajarilgan ishlar', rs.work), field('Tavsiyalar', rs.recommend), field('Keyingi texnik xizmat sanasi', nextDate));
+    const syncKind = () => { const k = kind.value; fValid.hidden = k !== 'quote'; fDue.hidden = k !== 'invoice'; repCard.hidden = k !== 'report'; };
+    kind.addEventListener('change', syncKind);
     const save = h('button', { class: 'btn btn-primary', type: 'submit', text: 'Saqlash' });
+    const copyAs = (k, label) => h('button', { type: 'button', class: 'btn btn-ghost', text: label, onclick: async () => {
+      try { await api(`/docs/${id}`, { method: 'POST', body: body() }); const r = await api(`/docs/${id}/copy`, { method: 'POST', body: { kind: k } }); toast('Yangi hujjat yaratildi'); location.hash = `docs/${r.id}`; } catch (er) { toast(errText(er), 'bad'); }
+    } });
     const form = h('form', { class: 'editor', onsubmit: async (e) => {
       e.preventDefault(); save.disabled = true;
       try { const r = await api(`/docs${id ? '/' + id : ''}`, { method: 'POST', body: body() }); toast('Saqlandi'); if (!id) location.hash = `docs/${r.id}`; else route(); } catch (er) { toast(errText(er), 'bad'); } finally { save.disabled = false; }
     } },
-    head(id ? `${DOCK[d.kind]} ${d.number}` : 'Yangi hujjat', id ? `${DOCS[d.status]}${d.request_code ? ` · ariza ${d.request_code}` : ''}` : 'Saqlagach raqam beriladi va chop etish sahifasi ochiladi.'),
+    head(id ? `${DOCK[d.kind] || 'Hujjat'} ${d.number}` : 'Yangi hujjat', id ? `${DOCS[d.status] || ''}${d.request_code ? ` · ariza ${d.request_code}` : ''}${dd.ref ? ` · asos ${dd.ref}` : ''}` : 'Saqlagach raqam beriladi va chop etish sahifasi ochiladi.'),
+    dl,
     h('div', { class: 'split' },
       h('div', { class: 'stack' },
         h('div', { class: 'card' }, h('h2', { text: 'Ishlar va ehtiyot qismlar' }),
-          h('table', { class: 'tbl items-tbl' }, h('thead', {}, h('tr', {}, ['Nomi', 'Miqdor', 'O‘lchov', 'Narx', ''].map((c) => h('th', { text: c })))), itemsBox),
-          h('div', { class: 'filters' }, h('button', { type: 'button', class: 'btn btn-ghost', text: '+ Qator', onclick: () => addItem() }), total)),
+          h('div', { class: 'tbl-scroll' }, h('table', { class: 'tbl items-tbl' }, h('thead', {}, h('tr', {}, ['Nomi', 'Miqdor', 'O‘lchov', 'Narx', ''].map((c) => h('th', { text: c })))), itemsBox)),
+          h('div', { class: 'filters' }, h('button', { type: 'button', class: 'btn btn-ghost', text: '+ Qator', onclick: () => addItem() }), total),
+          h('small', { class: 'muted', text: 'Avval ishlatilgan nomni tanlasangiz, o‘lchov va oxirgi narx o‘zi qo‘yiladi. Servis hisobotida qatorlar bo‘lmasa jadval chiqmaydi.' })),
+        repCard,
         h('div', { class: 'card' }, field('Izoh va shartlar', notes))),
       h('div', { class: 'stack' },
-        h('div', { class: 'card' }, h('div', { class: 'row2' }, field('Turi', kind), field('Til', lang)), field('Korxona', cust), field('Mijoz nomi (hujjatda)', custName, 'Bo‘sh bo‘lsa korxona nomi olinadi'), h('div', { class: 'row2' }, field('Valyuta', cur), field('QQS, %', vat)), field('Taklif amal qiladi (kun)', valid)),
+        h('div', { class: 'card' }, h('div', { class: 'row2' }, field('Turi', kind), field('Til', lang)), h('div', { class: 'row2' }, field('Sana', date), field('Holat', status)),
+          field('Korxona', cust), field('Mijoz nomi (hujjatda)', custName, 'Bo‘sh bo‘lsa korxona nomi olinadi'), field('Shartnoma', contract), field('Uskuna', equipment), field('Mas’ul muhandis', engineer),
+          h('div', { class: 'row2' }, field('Valyuta', cur), field('QQS, %', vat)), h('div', { class: 'row2' }, field('Chegirma, %', disc), h('div', {}, fValid, fDue)),
+          h('small', { class: 'muted', text: 'Imzo va muhr rasmi: Sozlamalar → Hujjatlar uchun imzo va muhr.' })),
         h('div', { class: 'sticky-act' }, save,
           id ? h('a', { class: 'btn btn-ghost', href: d.url, target: '_blank', rel: 'noopener', text: 'Chop etish / PDF ↗', onclick: async (e) => { if (d.status === 'draft') { e.preventDefault(); toast('Avval “Mijozga yuborish” bosing: qoralama ochiq havolada ko‘rinmaydi', 'bad'); } } }) : null,
           id ? h('button', { type: 'button', class: 'btn btn-ghost', text: d.recipients ? `Telegramda yuborish (${d.recipients})` : 'Yuborilgan deb belgilash', onclick: async () => {
@@ -984,12 +1046,15 @@
           } }) : null,
           id && d.status !== 'draft' ? h('a', { class: 'btn btn-ghost', href: `mailto:?subject=${encodeURIComponent(`${DOCK[d.kind]} ${d.number}`)}&body=${encodeURIComponent(d.url)}`, text: 'Email orqali' }) : null,
           id && d.status !== 'draft' ? h('p', { class: 'mono break' }, d.url, copyBtn(d.url)) : null,
+          id ? h('div', { class: 'doc-copy' }, h('span', { class: 'lbl', text: 'Shu hujjat asosida yaratish' }),
+            d.kind !== 'invoice' ? copyAs('invoice', 'To‘lov uchun hisob') : null, d.kind !== 'act' ? copyAs('act', 'Dalolatnoma') : null, d.kind !== 'report' ? copyAs('report', 'Servis hisoboti') : null, copyAs(d.kind, 'Nusxa')) : null,
           id ? h('button', { type: 'button', class: 'btn btn-danger', text: 'O‘chirish', onclick: async () => { if (!confirm('Hujjat o‘chirilsinmi?')) return; await api(`/docs/${id}`, { method: 'DELETE' }); location.hash = 'docs'; } }) : null))));
     main.append(form);
+    syncKind();
   }
   async function docFromRequest(r, kind) {
     try {
-      const out = await api('/docs', { method: 'POST', body: { kind, lang: r.lang || 'uz', request_id: r.id, items: [{ name: kind === 'act' ? `Ta’mirlash ishlari: ${r.equipment || r.service || ''}`.trim() : 'Diagnostika', qty: 1, unit: 'xizmat', price: 0 }], valid_days: kind === 'quote' ? 10 : 0 } });
+      const out = await api('/docs', { method: 'POST', body: { kind, lang: r.lang || 'uz', request_id: r.id, items: kind === 'report' ? [] : [{ name: kind === 'act' ? `Ta’mirlash ishlari: ${r.equipment || r.service || ''}`.trim() : 'Diagnostika', qty: 1, unit: 'xizmat', price: 0 }], valid_days: kind === 'quote' ? 10 : 0, equipment: r.equipment || '', report: kind === 'report' ? { symptom: r.message || '' } : {} } });
       location.hash = `docs/${out.id}`;
     } catch (e) { toast(errText(e), 'bad'); }
   }
@@ -1083,7 +1148,48 @@
       e.preventDefault();
       try { await api('/password', { method: 'POST', body: { current: cur.value, next: nxt.value } }); toast('Parol o‘zgardi. Qayta kiring.'); showLogin(); } catch (er) { toast(errText(er), 'bad'); }
     } }, h('h2', { text: 'Parolni o‘zgartirish' }), field('Joriy parol', cur), field('Yangi parol', nxt, 'Kamida 10 belgi. Barcha qurilmalardagi sessiyalar yopiladi.'), h('button', { class: 'btn btn-ghost', type: 'submit', text: 'O‘zgartirish' }));
-    main.append(h('div', { class: 'split' }, form, h('div', { class: 'stack' }, await heroCard(), conn, pwForm)));
+    main.append(h('div', { class: 'split' }, h('div', { class: 'stack' }, form, await sectionsCard(), await sigCard()), h('div', { class: 'stack' }, await heroCard(), conn, pwForm)));
+  }
+
+  // Bosh sahifadagi bo‘limlarni yashirish yoki qayta ko‘rsatish
+  async function sectionsCard() {
+    const SECS = [['stats', 'Raqamlar qatori (24/7, javob vaqti…)'], ['services', 'Xizmatlar'], ['quality', 'Sifat standarti'], ['plc', 'PLC ta’miri'], ['monitoring', 'PLC monitoring'], ['brands', 'Brendlar'],
+      ['process', 'Ish tartibi'], ['downtime', 'To‘xtash narxi kalkulyatori'], ['plans', 'Hamkorlik shakllari'], ['warranty', 'Kafolat'], ['support', 'Yordam markazi'], ['portfolio', 'Portfel'], ['errors', 'Xato kodlari'], ['reviews', 'Mijoz baholari'], ['faq', 'Savollar']];
+    let st; try { st = await api('/sections'); } catch (e) { return h('div', { class: 'card' }, h('p', { class: 'err', text: errText(e) })); }
+    const hid = new Set(st.hidden || []);
+    const boxes = SECS.map(([k, l]) => [k, h('input', { type: 'checkbox', checked: !hid.has(k) }), l]);
+    const save = h('button', { type: 'submit', class: 'btn btn-ghost', text: 'Saqlash' });
+    return h('form', { class: 'card', onsubmit: async (e) => {
+      e.preventDefault(); save.disabled = true;
+      try { await api('/sections', { method: 'POST', body: { hidden: boxes.filter(([, c]) => !c.checked).map(([k]) => k) } }); toast('Saqlandi. Bosh sahifa yangilandi'); } catch (er) { toast(errText(er), 'bad'); } finally { save.disabled = false; }
+    } }, h('h2', { text: 'Bosh sahifa bo‘limlari' }), h('p', { class: 'muted', text: 'Belgini olib tashlasangiz, bo‘lim bosh sahifada ko‘rinmaydi. Ma’lumotlar o‘chmaydi, istalgan payt qaytarish mumkin. Bosh ekran va ariza formasi doim ko‘rinadi.' }),
+      h('div', { class: 'sec-list' }, boxes.map(([, c, l]) => h('label', { class: 'cb' }, c, ` ${l}`))), save);
+  }
+
+  // Hujjatlardagi imzo va muhr rasmi
+  async function sigCard() {
+    let st; try { st = await api('/doc-assets'); } catch (e) { return h('div', { class: 'card' }, h('p', { class: 'err', text: errText(e) })); }
+    const toData = (file) => new Promise((ok, bad) => {
+      const img = new Image(); const u = URL.createObjectURL(file);
+      img.onload = () => { const sc = Math.min(1, 600 / Math.max(img.width, img.height)); const c = document.createElement('canvas'); c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(u); ok(c.toDataURL('image/png')); };
+      img.onerror = () => { URL.revokeObjectURL(u); bad(new Error('Rasmni o‘qib bo‘lmadi')); };
+      img.src = u;
+    });
+    const slot = (k, label) => {
+      const prev = h('div', { class: 'sig-prev' }, st[k] ? h('img', { src: st[k], alt: label }) : h('small', { class: 'muted', text: 'Yuklanmagan' }));
+      const inp = h('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp', class: 'vh' });
+      const pick = h('button', { type: 'button', class: 'btn btn-ghost sm', text: 'Rasm tanlash', onclick: () => inp.click() });
+      inp.addEventListener('change', async () => {
+        const f = inp.files[0]; if (!f) return;
+        try { const v = await toData(f); if (v.length > 400 * 1024) throw new Error('Rasm juda katta. Kichikroq PNG tanlang'); await api('/doc-assets', { method: 'POST', body: { [k]: v } }); st[k] = v; clear(prev).append(h('img', { src: v, alt: label })); toast('Saqlandi'); } catch (er) { toast(er.message || errText(er), 'bad'); }
+        inp.value = '';
+      });
+      const del = h('button', { type: 'button', class: 'btn btn-ghost sm', text: 'O‘chirish', onclick: async () => { try { await api('/doc-assets', { method: 'POST', body: { [k]: '' } }); st[k] = ''; clear(prev).append(h('small', { class: 'muted', text: 'Yuklanmagan' })); toast('O‘chirildi'); } catch (er) { toast(errText(er), 'bad'); } } });
+      return h('div', {}, h('span', { class: 'lbl', text: label }), prev, h('div', { class: 'filters' }, pick, del, inp));
+    };
+    return h('div', { class: 'card' }, h('h2', { text: 'Hujjatlar uchun imzo va muhr' }),
+      h('p', { class: 'muted', text: 'Oq yoki shaffof fonda skanerlangan rasm (PNG yaxshiroq). Yuborilgan barcha hujjatlarda ijrochi imzosi o‘rnida chiqadi.' }),
+      h('div', { class: 'sig-row' }, slot('sign', 'Imzo'), slot('stamp', 'Muhr')));
   }
 
   // Bosh sahifa fonidagi video: yangi fayl yuklash, kadr joylashuvi, standart videoga qaytish

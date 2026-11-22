@@ -16,7 +16,8 @@ const isDate = (s) => /^\d{4}-\d{2}-\d{2}$/.test(String(s || ''));
 const tri = (o, n) => Object.fromEntries(LANGS.map((l) => [l, clean(o?.[l], n)]));
 const triList = (o, n, max) => Object.fromEntries(LANGS.map((l) => [l, (Array.isArray(o?.[l]) ? o[l] : String(o?.[l] || '').split('\n')).map((x) => clean(x, n)).filter(Boolean).slice(0, max)]));
 export const EQ_RE = /^EQ-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
-const DOC_STATUSES = ['draft', 'sent', 'accepted'];
+const DOC_STATUSES = ['draft', 'sent', 'accepted', 'paid'];
+const DOC_KINDS = { quote: 'TK', invoice: 'HS', act: 'DA', report: 'SH' };
 const EV_KINDS = ['repair', 'maintenance', 'request', 'note', 'install'];
 
 /* ---------- Xato kodlari ---------- */
@@ -58,7 +59,7 @@ function nextDocNumber(kind) {
   const key = `docseq_${kind}_${y}`;
   const n = (parseInt(getSetting(key, '0'), 10) || 0) + 1;
   setSetting(key, n);
-  return `${kind === 'quote' ? 'TK' : 'DA'}-${y}-${String(n).padStart(4, '0')}`;
+  return `${DOC_KINDS[kind] || 'DK'}-${y}-${String(n).padStart(4, '0')}`;
 }
 function cleanDocData(b) {
   const items = (Array.isArray(b.items) ? b.items : []).slice(0, 60).map((i) => ({ name: clean(i.name, 300), qty: Math.max(0, Number(i.qty) || 0), unit: clean(i.unit, 20), price: Math.max(0, Number(i.price) || 0) })).filter((i) => i.name);
@@ -67,6 +68,14 @@ function cleanDocData(b) {
     currency: ['UZS', 'USD', 'EUR', 'RUB'].includes(b.currency) ? b.currency : 'UZS',
     vat: Math.min(Math.max(Number(b.vat) || 0, 0), 30),
     valid_days: Math.min(Math.max(parseInt(b.valid_days, 10) || 0, 0), 365),
+    due_days: Math.min(Math.max(parseInt(b.due_days, 10) || 0, 0), 365),
+    discount: Math.min(Math.max(Number(b.discount) || 0, 0), 100),
+    date: /^\d{4}-\d{2}-\d{2}$/.test(String(b.date || '')) ? String(b.date) : '',
+    contract: clean(b.contract, 120),
+    ref: clean(b.ref, 40),
+    equipment: clean(b.equipment, 200),
+    engineer: clean(b.engineer, 120),
+    report: Object.fromEntries(['symptom', 'cause', 'work', 'recommend'].map((k) => [k, clean(b.report?.[k], 4000)]).concat([['next_date', /^\d{4}-\d{2}-\d{2}$/.test(String(b.report?.next_date || '')) ? String(b.report.next_date) : '']])),
     notes: clean(b.notes, 3000)
   };
 }
@@ -113,7 +122,7 @@ export function createOps(ctx) {
     if ((m = p.match(/^\/doc\/([A-Za-z0-9_-]{20,40})\/$/))) {
       const doc = docByToken(m[1]);
       const ok = doc && doc.status !== 'draft';
-      html(res, renderDoc(T(ok ? doc.lang : lang), c, ok ? doc : null, VER), ok ? 200 : 404);
+      html(res, renderDoc(T(ok ? doc.lang : lang), { ...c, docSign: getSetting('doc_sign', ''), docStamp: getSetting('doc_stamp', '') }, ok ? doc : null, VER), ok ? 200 : 404);
       return true;
     }
     return false;
@@ -180,7 +189,7 @@ export function createOps(ctx) {
       const u = db.prepare('SELECT lang FROM tg_users WHERE tg_id = ?').get(id);
       const tt = T(LANGS.includes(u?.lang) ? u.lang : doc.lang);
       const btn = link.startsWith('https://') ? { reply_markup: { inline_keyboard: [[{ text: tt.doc.print, url: link }]] } } : {};
-      const ok = await sendTo(id, `${fmt(tt.tgx.docSent, { title: esc(doc.kind === 'quote' ? tt.doc.quote : tt.doc.act), no: esc(doc.number) })}\n${esc(link)}`, btn).catch(() => false);
+      const ok = await sendTo(id, `${fmt(tt.tgx.docSent, { title: esc(tt.doc[doc.kind] || tt.doc.quote), no: esc(doc.number) })}\n${esc(link)}`, btn).catch(() => false);
       if (ok) n++;
     }
     return n;
@@ -287,7 +296,7 @@ export function createOps(ctx) {
     }
     if ((m = p.match(/^\/docs(?:\/(\d+))?$/)) && method === 'POST') {
       const b = await readJson(req, 256 * 1024);
-      const kind = b.kind === 'act' ? 'act' : 'quote';
+      const kind = DOC_KINDS[b.kind] ? b.kind : 'quote';
       const lang = LANGS.includes(b.lang) ? b.lang : 'uz';
       const reqId = parseInt(b.request_id, 10) || null;
       const r = reqId ? db.prepare('SELECT id, company, name, equipment_id FROM requests WHERE id = ?').get(reqId) : null;
@@ -310,8 +319,18 @@ export function createOps(ctx) {
       if (!d) return json(res, 404, { error: 'not_found' });
       if (d.status === 'draft') { db.prepare("UPDATE documents SET status = 'sent', updated_at = ? WHERE id = ?").run(now(), d.id); d.status = 'sent'; }
       const n = await sendDoc(d);
-      if (d.kind === 'act' && d.request_id) ctx.addUpdate(d.request_id, { note: `${T(d.lang).doc.act} ${d.number}`, public: true });
+      if ((d.kind === 'act' || d.kind === 'report') && d.request_id) ctx.addUpdate(d.request_id, { note: `${T(d.lang).doc[d.kind]} ${d.number}`, public: true });
       return json(res, 200, { ok: true, sent: n });
+    }
+    if ((m = p.match(/^\/docs\/(\d+)\/copy$/)) && method === 'POST') {
+      const b = await readJson(req);
+      const src = docRow(db.prepare('SELECT * FROM documents WHERE id = ?').get(+m[1]));
+      if (!src) return json(res, 404, { error: 'not_found' });
+      const kind = DOC_KINDS[b.kind] ? b.kind : src.kind;
+      const data = { ...src.data, date: '', ...(kind !== src.kind ? { ref: `${src.number}` } : {}) };
+      const id = Number(db.prepare('INSERT INTO documents(kind, number, token, request_id, customer_id, lang, data, status, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)')
+        .run(kind, nextDocNumber(kind), randToken(18), src.request_id, src.customer_id, src.lang, JSON.stringify(data), 'draft', now(), now()).lastInsertRowid);
+      return json(res, 201, { ok: true, id });
     }
     if ((m = p.match(/^\/docs\/(\d+)$/)) && method === 'DELETE') { db.prepare('DELETE FROM documents WHERE id = ?').run(+m[1]); return json(res, 200, { ok: true }); }
     return undefined;
