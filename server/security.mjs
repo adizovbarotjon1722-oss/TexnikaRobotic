@@ -60,12 +60,17 @@ export function verifyPassword(pw, stored) {
   return exp.length === key.length && crypto.timingSafeEqual(exp, key);
 }
 
+// ADMIN_PASSWORD o'zgartirilsa (masalan, hostingdagi o'zgaruvchilarda), keyingi ishga tushishda yangi parol kuchga kiradi.
+// Admin paneldan o'zgartirilgan parol esa ADMIN_PASSWORD yana o'zgarmaguncha saqlanib qoladi.
 export function ensureAdminPassword() {
-  if (getSetting('admin_hash')) return null;
-  const pw = process.env.ADMIN_PASSWORD || randToken(12);
+  const env = String(process.env.ADMIN_PASSWORD || '').trim();
+  const fp = env ? crypto.createHash('sha256').update(env).digest('hex') : '';
+  if (getSetting('admin_hash') && (!env || getSetting('admin_env_fp') === fp)) return null;
+  const pw = env || randToken(12);
   if (pw.length < 10) throw new Error('ADMIN_PASSWORD kamida 10 belgidan iborat bo‘lishi kerak');
   setSetting('admin_hash', hashPassword(pw));
-  return process.env.ADMIN_PASSWORD ? null : pw;
+  if (env) { setSetting('admin_env_fp', fp); db.prepare('DELETE FROM sessions').run(); }
+  return env ? null : pw;
 }
 
 /* Admin sessiyasi */
