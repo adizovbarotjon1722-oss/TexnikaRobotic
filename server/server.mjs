@@ -21,6 +21,7 @@ import { renderAccount, renderVideos } from '../src/template6.mjs';
 import { renderPlc, renderWarranty } from '../src/template4.mjs';
 import { renderMonitoring } from '../src/template7.mjs';
 import { renderTeam, renderService } from '../src/template8.mjs';
+import { renderLpHub, renderLpService, renderLpCity, LP_SLUGS, LP_CITIES } from '../src/template9.mjs';
 import { createTeam, listTeam, feedbackSummary, listFeedbackPublic } from './team.mjs';
 import { renderSupport } from '../src/template5.mjs';
 import { track, stats } from './analytics.mjs';
@@ -183,6 +184,14 @@ function routePage(req, res, p) {
   if (p === '/documents/') return html(res, renderService(lang, t, c, 'docs', VER));
   if (p === '/team/') return html(res, renderTeam(lang, t, c, listTeam(), listPortfolio().filter((x) => !x.sample), VER));
   if (p === '/plc/') return html(res, renderPlc(lang, t, c, { cases: listPortfolio().filter((x) => x.cover === 'plc' || /plc|s7-|simatic|mitsubishi|omron|allen|modicon/i.test(`${x.brand} ${x.model}`)) }, VER));
+  if (p.startsWith('/services/')) {
+    const lpData = () => ({ rs: reviews.summary(), fb: feedbackSummary(), quotes: [...reviews.listPublic(3), ...listFeedbackPublic(3)].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at))).slice(0, 3) });
+    let out = null;
+    if (p === '/services/') out = renderLpHub(lang, t, c, lpData(), VER);
+    else if ((mm = p.match(/^\/services\/city\/([a-z]{2,20})\/$/))) out = renderLpCity(lang, t, c, mm[1], lpData(), VER);
+    else if ((mm = p.match(/^\/services\/([a-z0-9-]{2,60})\/$/))) out = renderLpService(lang, t, c, mm[1], lpData(), VER);
+    if (out) return html(res, out);
+  }
   if (p === '/warranty/') return html(res, renderWarranty(lang, t, c, VER));
   if (p === '/support/') return html(res, renderSupport(lang, t, c, VER));
   if (p === '/portfolio/') return html(res, renderPortfolioList(lang, t, c, listPortfolio(), VER));
@@ -207,7 +216,7 @@ function routePage(req, res, p) {
 
 function sitemap(res) {
   const c = cfg();
-  const subs = ['', 'academy/', 'monitoring/', 'robots/', 'documents/', 'team/', 'plc/', 'warranty/', 'support/', 'portfolio/', 'videos/', 'track/', ...ops.sitemapPaths(), ...listPortfolio().filter((p) => !p.sample).map((p) => `portfolio/${p.slug}/`), ...listCourses().map((x) => `academy/${x.slug}/`)];
+  const subs = ['', 'services/', ...LP_SLUGS.map((x) => `services/${x}/`), ...LP_CITIES.map((x) => `services/city/${x}/`), 'academy/', 'monitoring/', 'robots/', 'documents/', 'team/', 'plc/', 'warranty/', 'support/', 'portfolio/', 'videos/', 'track/', ...ops.sitemapPaths(), ...listPortfolio().filter((p) => !p.sample).map((p) => `portfolio/${p.slug}/`), ...listCourses().map((x) => `academy/${x.slug}/`)];
   const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${subs.flatMap((s) => LANGS.map((l) => `  <url><loc>${esc(c.domain + pageUrl(l, s))}</loc><lastmod>${now().slice(0, 10)}</lastmod>${LANGS.map((a) => `<xhtml:link rel="alternate" hreflang="${a}" href="${esc(c.domain + pageUrl(a, s))}"/>`).join('')}<xhtml:link rel="alternate" hreflang="x-default" href="${esc(c.domain + pageUrl('uz', s))}"/></url>`)).join('\n')}\n</urlset>\n`;
   send(res, 200, xml, MIME['.xml'], { 'Cache-Control': 'public, max-age=3600' });
 }

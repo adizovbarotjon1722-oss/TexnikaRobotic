@@ -1201,7 +1201,7 @@
       msg.className = 'cb-msg';
       if (digits.length < 9 || digits.length > 15) { msg.textContent = f.getAttribute('data-err-phone'); msg.classList.add('bad'); f.phone.focus(); return; }
       var btn = f.querySelector('button[type="submit"]'); btn.disabled = true;
-      var body = { phone: phone, urgent: f.urgent.checked, website: f.website.value, lang: f.getAttribute('data-lang') };
+      var body = { phone: phone, urgent: f.urgent.checked, website: f.website.value, lang: f.getAttribute('data-lang') , service: f.getAttribute('data-service') || undefined };
       fetch('/api/callback', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), credentials: 'same-origin' })
         .then(function (r) { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
         .then(function (d) { msg.textContent = f.getAttribute('data-ok').replace('{code}', d.code || ''); msg.classList.add('ok'); f.reset(); beacon({ t: 'ev', e: body.urgent ? 'callback_urgent' : 'callback', p: location.pathname, l: lang() }); })

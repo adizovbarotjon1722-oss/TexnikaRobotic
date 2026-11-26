@@ -357,6 +357,10 @@ try {
   ok((await post('/api/callback', { phone: '12', lang: 'uz' })).status === 400, 'qayta qo‘ng‘iroq: noto‘g‘ri raqam rad etiladi');
   { const r = await post('/api/callback', { phone: '+998 90 111 22 33', urgent: true, lang: 'ru' }); const d = await r.json(); ok(r.status === 201 && /^TX-/.test(d.code), 'qayta qo‘ng‘iroq: ariza yaratildi'); }
   { const hm = await (await get('/')).text(); ok(hm.includes('id="cb-form"') && hm.includes('class="m-bar"') && hm.includes('cat-table'), 'bosh sahifa: qo‘ng‘iroq formasi, katalog va mobil panel'); }
+  { const r = await get('/services/siemens-s7-plc-repair/'); const h = await r.text(); ok(r.status === 200 && h.includes('lpx-ladder') && h.includes('"FAQPage"') && h.includes('id="lead-form"'), 'xizmat sahifasi: sxema, FAQ belgisi va ariza formasi'); }
+  { const r = await get('/ru/services/city/samarqand/'); const h = await r.text(); ok(r.status === 200 && h.includes('Самарканд') && !/\{c\}/.test(h) && h.includes('lpx-map'), 'shahar sahifasi: nom to‘ldirilgan, xarita bor'); }
+  { ok((await get('/services/nope/')).status === 404 && (await get('/services/')).status === 200, 'xizmatlar hubi bor, noto‘g‘ri manzil 404'); }
+  { const sm = await (await get('/sitemap.xml')).text(); ok(sm.includes('/services/city/nukus/') && sm.includes('/en/services/kuka-robot-repair/'), 'sitemap: xizmat va shahar sahifalari'); }
   ok((await post('/api/feedback', { lang: 'uz' })).status === 400, 'baho: bo‘sh baho rad etiladi');
   ok((await post('/api/feedback', { site: 5, service: 4, text: 'Juda qulay sayt', name: 'Sinov', lang: 'uz' })).status === 201, 'baho: sayt va xizmat bahosi qabul qilindi');
   const fbl = await (await get('/admin/api/feedback', { Cookie: cookie })).json();

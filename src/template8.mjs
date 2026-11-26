@@ -3,9 +3,9 @@ import { layout, esc, icon, url, secHead, aiFormFor, portfolioCard, heroVideo, p
 import { homeMonitoring } from './template7.mjs';
 import { fmt } from './i18n.mjs';
 
-const CAT_HREF = { plc: 'plc/', robots: 'robots/', to: '', training: 'academy/', mon: 'monitoring/', docs: 'documents/' };
-function callbackForm(cb, lang) {
-  return `<form class="cb-form" id="cb-form" novalidate data-lang="${lang}" data-ok="${esc(cb.ok)}" data-err="${esc(cb.err)}" data-err-phone="${esc(cb.errPhone)}">
+const CAT_HREF = { plc: 'plc/', robots: 'robots/', to: 'services/equipment-maintenance/', training: 'academy/', mon: 'monitoring/', docs: 'documents/' };
+export function callbackForm(cb, lang, service = '') {
+  return `<form class="cb-form" id="cb-form" novalidate data-lang="${lang}"${service ? ` data-service="${esc(service)}"` : ''} data-ok="${esc(cb.ok)}" data-err="${esc(cb.err)}" data-err-phone="${esc(cb.errPhone)}">
     <h2 class="cb-title">${esc(cb.title)}</h2><p class="cb-lead">${esc(cb.lead)}</p>
     <div class="cb-row"><label class="vh" for="cb-phone">${esc(cb.phone)}</label><input id="cb-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="+998 __ ___ __ __" required>
       <button class="btn btn-primary" type="submit">${esc(cb.send)}</button></div>
@@ -107,6 +107,7 @@ export function home2(t, lang, cfg, data) {
         <span role="cell" class="cat-act"><a class="btn btn-ghost btn-sm" href="#contact" data-svc="${esc(it.name)}" data-ev="cat_${it.key}">${esc(c.ask)}</a></span>
       </div>`).join('')}
     </div>
+    ${t.lp ? `<nav class="cat-all" aria-label="${esc(t.lp.hub.eyebrow)}"><a class="btn btn-ghost btn-sm" href="${url(lang, 'services/')}">${esc(t.lp.hub.eyebrow)}${icon('arrow')}</a>${t.lp.services.map((x) => `<a href="${url(lang, `services/${x.slug}/`)}">${esc(x.name)}</a>`).join('')}</nav>` : ''}
     <h3 class="cat-sub">${esc(c.stepsTitle)}</h3>
     <ol class="steps steps-5 cat-steps">${c.steps.map(([a, x], i) => `<li class="step reveal"><span class="step-n">0${i + 1}</span><h3>${esc(a)}</h3><p>${esc(x)}</p></li>`).join('')}</ol>
   </div></section>` : ''}

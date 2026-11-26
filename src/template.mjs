@@ -171,6 +171,7 @@ function footer(t, lang, cfg, mode, sub = null) {
   <div class="wrap ftr">
     <div class="ftr-brand">${logo}<div><strong>${esc(cfg.brand)}</strong><p>${esc(t.footer.tagline)}</p><p class="ftr-contacts">${phoneLock(cfg, t, 'call_ftr', 'ph-sm', `${home}#contact`)}${realEmail(cfg) ? ` · <a href="mailto:${esc(cfg.email)}">${esc(cfg.email)}</a>` : ''}</p></div></div>
     <nav aria-label="${esc(t.a11y.menu)}"><ul class="ftr-nav">
+      <li><a href="${mode === 'preview' ? '#' : url(lang, 'services/')}">${esc(t.lp.hub.eyebrow)}</a></li>
       <li><a href="${mode === 'preview' ? '#' : url(lang, 'academy/')}">${esc(t.v2.nav.training)}</a></li>
       <li><a href="${mode === 'preview' ? '#' : url(lang, 'robots/')}">${esc(t.v2.nav.robots)}</a></li>
       <li><a href="${mode === 'preview' ? '#' : url(lang, 'documents/')}">${esc(t.v2.nav.docs)}</a></li>
@@ -199,7 +200,7 @@ export function secHead(eyebrow, title, lead, id, extra = '', art = '') {
 export function aiFormFor(t, cfg, o = {}) { return aiForm(t, cfg, o); }
 
 function aiForm(t, cfg, o = {}) {
-  const serviceOptions = [...t.services.items.map((s) => s.title), ...(t.plc?.svc ? [t.plc.svc] : []), ...(t.mon?.svc ? [t.mon.svc] : []), ...t.extra.items.map((s) => s.title), ...(t.v3?.cat.items.map((s) => s.name) || []), t.contact.other].filter((x, i, a) => a.indexOf(x) === i);
+  const serviceOptions = [...t.services.items.map((s) => s.title), ...(t.plc?.svc ? [t.plc.svc] : []), ...(t.mon?.svc ? [t.mon.svc] : []), ...t.extra.items.map((s) => s.title), ...(t.v3?.cat.items.map((s) => s.name) || []), ...(o.service ? [o.service] : []), t.contact.other].filter((x, i, a) => a.indexOf(x) === i);
   const c = t.contact;
   const ai = t.ai;
   return `
