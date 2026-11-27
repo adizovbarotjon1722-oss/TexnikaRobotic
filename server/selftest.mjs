@@ -27,7 +27,7 @@ const mock = http.createServer((req, res) => {
   });
 }).listen(0);
 await new Promise((r) => mock.on('listening', r));
-const srv = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'server/server.mjs'], { cwd: ROOT, env: { ...process.env, PORT: String(PORT), DATA_DIR: DATA, ADMIN_PASSWORD: PW, AI_GATEWAY_API_KEY: '', ANTHROPIC_API_KEY: '', TELEGRAM_BOT_TOKEN: BOT, TELEGRAM_CHAT_ID: '999', TELEGRAM_WEBHOOK_SECRET: SECRET, TELEGRAM_API_BASE: `http://localhost:${mock.address().port}`, ESKIZ_API_BASE: `http://localhost:${mock.address().port}`, ESKIZ_EMAIL: 'test@x.uz', ESKIZ_PASSWORD: 'p', BREVO_API_KEY: '', MAIL_FROM: '', PUBLIC_URL: '' }, stdio: ['ignore', 'pipe', 'inherit'] });
+const srv = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'server/server.mjs'], { cwd: ROOT, env: { ...process.env, PORT: String(PORT), DATA_DIR: DATA, ADMIN_PASSWORD: PW, AI_GATEWAY_API_KEY: '', ANTHROPIC_API_KEY: '', TELEGRAM_BOT_TOKEN: BOT, TELEGRAM_CHAT_ID: '999', TELEGRAM_WEBHOOK_SECRET: SECRET, TELEGRAM_API_BASE: `http://localhost:${mock.address().port}`, ESKIZ_API_BASE: `http://localhost:${mock.address().port}`, ESKIZ_EMAIL: 'test@x.uz', ESKIZ_PASSWORD: 'p', BREVO_API_KEY: '', MAIL_FROM: '', PUBLIC_URL: '', GOOGLE_SITE_VERIFICATION: 'google65e38d401c14c6a2.html, googlea4ca72a0388aeaf9.html metaTok_1' }, stdio: ['ignore', 'pipe', 'inherit'] });
 await new Promise((r) => srv.stdout.on('data', (d) => String(d).includes('http://') && r()));
 
 let fail = 0;
@@ -262,6 +262,9 @@ try {
   for (const p of ['/account/', '/ru/account/', '/en/videos/', '/videos/']) { const r = await get(p); ok(r.status === 200 && r.headers.get('content-security-policy').includes('frame-src https://www.youtube-nocookie.com'), `sahifa ${p}`); }
   ok((await (await get('/account/')).text()).includes('id="f-register"'), 'kabinet: kirish va ro‘yxat formalari');
   ok((await (await get('/robots.txt')).text()).includes('Disallow: /account/'), 'robots: kabinet yopiq');
+  { const a = await get('/google65e38d401c14c6a2.html'), b = await get('/googlea4ca72a0388aeaf9.html'), x = await get('/google0000000000000000.html');
+    ok(a.status === 200 && (await a.text()).includes('google65e38d401c14c6a2.html') && b.status === 200 && x.status !== 200, 'Google: bir nechta HTML tasdiqlash fayli');
+    ok((await (await get('/')).text()).includes('content="metaTok_1"'), 'Google: meta teg ham ishlaydi'); }
   ok((await post('/api/account/register', { name: 'Ikkinchi', login: '901112233', password: 'boshqa-parol-1' })).status === 409, 'akkaunt: bir telefon ikki marta ro‘yxatdan o‘tmaydi');
   ok((await post('/api/account/register', { name: 'Q', login: 'x@y', password: '123' })).status === 400, 'akkaunt: noto‘g‘ri ma’lumot rad etiladi');
   ok((await post('/api/account/login', { login: '+998901112233', password: 'xato-parol' })).status === 401, 'akkaunt: noto‘g‘ri parol');

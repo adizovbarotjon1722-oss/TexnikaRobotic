@@ -61,13 +61,13 @@ function cfg() {
   c.domain = (process.env.PUBLIC_URL || s.domain || fileCfg.domain).replace(/\/+$/, '');
   for (const k of EXTRA_KEYS) c[k] = s[k] || '';
   c.hiddenSections = J(getSetting('hidden_sections', '[]'), []);
-  c.googleVerify ||= process.env.GOOGLE_SITE_VERIFICATION || '';
-  c.yandexVerify ||= process.env.YANDEX_VERIFICATION || '';
-  // Search Console "HTML fayl" usuli: google1234abcd.html yoki yandex_1234abcd.html nomi berilsa, shu fayl beriladi
-  c.googleFile = /^google[0-9a-f]+\.html$/i.test(c.googleVerify) ? c.googleVerify : '';
-  c.yandexFile = /^yandex_[0-9a-f]+\.html$/i.test(c.yandexVerify) ? c.yandexVerify : '';
-  if (c.googleFile) c.googleVerify = '';
-  if (c.yandexFile) c.yandexVerify = '';
+  // Search Console "HTML fayl" usuli: google1234abcd.html yoki yandex_1234abcd.html nomlari beriladi.
+  // Bir nechta qiymat (vergul yoki bo'sh joy bilan) mumkin: admin sozlamasi va hosting o'zgaruvchisi birlashtiriladi.
+  const vals = (a, b) => [...new Set(`${a || ''} ${b || ''}`.split(/[\s,]+/).filter(Boolean))];
+  const gv = vals(c.googleVerify, process.env.GOOGLE_SITE_VERIFICATION), yv = vals(c.yandexVerify, process.env.YANDEX_VERIFICATION);
+  const gf = (x) => /^google[0-9a-f]+\.html$/i.test(x), yf = (x) => /^yandex_[0-9a-f]+\.html$/i.test(x);
+  c.googleFiles = gv.filter(gf); c.yandexFiles = yv.filter(yf);
+  c.googleVerify = gv.find((x) => !gf(x)) || ''; c.yandexVerify = yv.find((x) => !yf(x)) || '';
   c.warrantyMonths = parseInt(c.warrantyMonths, 10) || fileCfg.warrantyMonths || 3;
   c.partsMonths = parseInt(c.partsMonths, 10) || fileCfg.partsMonths || 12;
   c.phoneOpen = c.phoneMode !== 'lock';
@@ -233,8 +233,9 @@ function sitemap(res) {
 }
 function verifyFile(p) {
   const c = cfg();
-  if (c.googleFile && p === '/' + c.googleFile) return `google-site-verification: ${c.googleFile}`;
-  if (c.yandexFile && p === '/' + c.yandexFile) return `<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"></head><body>Verification: ${c.yandexFile.slice(7, -5)}</body></html>`;
+  const name = p.slice(1);
+  if (c.googleFiles.includes(name)) return `google-site-verification: ${name}`;
+  if (c.yandexFiles.includes(name)) return `<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"></head><body>Verification: ${name.slice(7, -5)}</body></html>`;
   return '';
 }
 
@@ -681,7 +682,7 @@ async function adminApi(req, res, p, sess) {
       if (k === 'responseHours') v = String(Math.min(Math.max(parseInt(v, 10) || 2, 1), 72));
       if (k === 'domain' && v && !/^https:\/\/[a-z0-9.-]+(:\d+)?$/i.test(v)) return json(res, 400, { error: 'domain' });
       if (k === 'email' && v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return json(res, 400, { error: 'email' });
-      if (k === 'googleVerify' || k === 'yandexVerify') v = v.replace(/[^A-Za-z0-9_.-]/g, '');
+      if (k === 'googleVerify' || k === 'yandexVerify') v = v.split(/[\s,]+/).map((x) => x.replace(/[^A-Za-z0-9_.-]/g, '')).filter(Boolean).join(', ');
       if (k === 'warrantyMonths' || k === 'partsMonths') v = v ? String(Math.min(Math.max(parseInt(v, 10) || 3, 1), 60)) : '';
       if (k === 'phoneMode') v = v === 'lock' ? 'lock' : 'open';
       if (k === 'admin_tg_ids') v = v.split(/[\s,]+/).filter((x) => /^-?\d{3,20}$/.test(x)).join(',');
