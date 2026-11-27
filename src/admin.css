@@ -360,3 +360,8 @@ body.qr-print { background: #fff; color: #111; font: 13px/1.35 'IBM Plex Sans', 
 .adm .tm-prev img { width: 100%; height: 100%; object-fit: cover; }
 .adm .fb-card { margin-bottom: 24px; }
 .adm .sub-h { margin: 8px 0 14px; font-size: 1.1rem; }
+.ev-list li.ev-warn span:not(.muted) { color: var(--warn); }
+.qr-2fa { background: #fff; padding: 10px; border-radius: 8px; width: 200px; height: 200px; }
+.l-otp { display: flex; flex-direction: column; gap: 6px; }
+.l-otp input { font: 600 1.3rem var(--f-mono); letter-spacing: .4em; text-align: center; }
+.tbl .tag.ok { margin-left: 6px; }

@@ -58,7 +58,7 @@
     if (!r.ok) { const e = new Error((data && data.error) || String(r.status)); e.status = r.status; throw e; }
     return data;
   }
-  const ERR = { bad_password: 'Parol noto‘g‘ri', rate: 'Juda ko‘p urinish. Keyinroq qayta urinib ko‘ring', slug: 'Bu manzil (slug) band yoki noto‘g‘ri', title: 'O‘zbekcha sarlavha majburiy', weak: 'Yangi parol kamida 10 belgi bo‘lsin', domain: 'Domen https:// bilan boshlanishi kerak', email: 'Email noto‘g‘ri', bad_image: 'Rasm formati qabul qilinmadi (JPEG, PNG, WEBP)', company: 'Korxona nomini kiriting', exists: 'Bunday kod mavjud', csrf: 'Sessiya eskirdi, sahifani yangilang', src: 'Video tanlanmagan: fayl yuklang yoki YouTube/Vimeo havolasini kiriting', format: 'Faqat MP4 yoki WebM video yuklanadi', size: 'Video juda katta (4 GB gacha)', offset: 'Yuklash uzildi, qayta urinib ko‘ring' };
+  const ERR = { bad_password: 'Parol noto‘g‘ri', rate: 'Juda ko‘p urinish. Keyinroq qayta urinib ko‘ring', slug: 'Bu manzil (slug) band yoki noto‘g‘ri', title: 'O‘zbekcha sarlavha majburiy', weak: 'Yangi parol kamida 10 belgi bo‘lsin', domain: 'Domen https:// bilan boshlanishi kerak', email: 'Email noto‘g‘ri', bad_image: 'Rasm formati qabul qilinmadi (JPEG, PNG, WEBP)', company: 'Korxona nomini kiriting', exists: 'Bunday kod mavjud', csrf: 'Sessiya eskirdi, sahifani yangilang', src: 'Video tanlanmagan: fayl yuklang yoki YouTube/Vimeo havolasini kiriting', format: 'Faqat MP4 yoki WebM video yuklanadi', size: 'Video juda katta (4 GB gacha)', offset: 'Yuklash uzildi, qayta urinib ko‘ring', otp_required: 'Ilovadagi 6 xonali kodni kiriting', bad_otp: 'Kod noto‘g‘ri yoki eskirgan', type: 'Faqat PDF, Word, Excel, PowerPoint yoki ZIP fayl', file: 'Fayl tanlanmagan' };
   const errText = (e) => ERR[e.message] || `Xatolik: ${e.message}`;
 
   /* ---------- Kirish ---------- */
@@ -66,18 +66,21 @@
     clear(root);
     const pw = h('input', { type: 'password', id: 'l-pw', autocomplete: 'current-password', required: true, minlength: '10' });
     const st = h('p', { class: 'l-err', role: 'alert' });
+    const otp = h('input', { type: 'text', id: 'l-otp', inputmode: 'numeric', autocomplete: 'one-time-code', maxlength: '6', pattern: '[0-9]{6}' });
+    const otpBox = h('div', { class: 'l-otp', hidden: true }, h('label', { for: 'l-otp', text: 'Ilovadagi kod (Google Authenticator)' }), otp);
     const btn = h('button', { class: 'btn btn-primary', type: 'submit', text: 'Kirish' });
     const form = h('form', { class: 'login card', onsubmit: async (e) => {
       e.preventDefault(); btn.disabled = true; st.textContent = '';
       try {
-        const r = await fetch('/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw.value }), credentials: 'same-origin' });
+        const r = await fetch('/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw.value, otp: otp.value.trim() || undefined }), credentials: 'same-origin' });
         const d = await r.json().catch(() => ({}));
+        if (d.error === 'otp_required' || d.error === 'bad_otp') { otpBox.hidden = false; otp.focus(); if (d.error === 'bad_otp') { st.textContent = errText(new Error('bad_otp')); otp.select(); } return; }
         if (!r.ok) throw new Error(d.error || r.status);
         CSRF = d.csrf; boot();
       } catch (er) { st.textContent = errText(er); pw.select(); } finally { btn.disabled = false; }
     } },
     h('div', { class: 'l-logo' }, logo(), h('span', { text: 'Boshqaruv paneli' })),
-    h('label', { for: 'l-pw', text: 'Parol' }), pw, st, btn,
+    h('label', { for: 'l-pw', text: 'Parol' }), pw, otpBox, st, btn,
     h('a', { href: '/', class: 'l-back', text: '← Saytga qaytish' }));
     root.append(h('main', { class: 'login-wrap' }, form));
     pw.focus();
@@ -101,6 +104,7 @@
     ['rev', 'Baholar', 'M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z'],
     ['acad', 'Akademiya', 'M2 9l10-5 10 5-10 5zM6 11v5c3 2 9 2 12 0v-5'],
     ['vid', 'Videolar', 'M3 5h18v14H3zM10 9v6l5-3z'],
+    ['man', 'Qo‘llanmalar', 'M4 4.5h6a2 2 0 012 2v13a2 2 0 00-2-2H4zM20 4.5h-6a2 2 0 00-2 2v13a2 2 0 012-2h6z'],
     ['users', 'Foydalanuvchilar', 'M9 11a4 4 0 100-8 4 4 0 000 8zM2 21c.8-4 3.6-6 7-6s6.2 2 7 6M16 3.5a4 4 0 010 7.5M18 15c2 .6 3.4 2.6 4 6'],
     ['text', 'Matnlar', 'M4 6h16M4 12h10M4 18h13'],
     ['set', 'Sozlamalar', 'M12 8a4 4 0 100 8 4 4 0 000-8zM3 12h2M19 12h2M12 3v2M12 19v2']
@@ -134,7 +138,7 @@
     const tab = TABS.some((t) => t[0] === k) ? k : 'dash';
     for (const [n, b] of Object.entries(navBtns)) b.classList.toggle('on', n === tab), b.setAttribute('aria-current', n === tab ? 'page' : 'false');
     clear(main);
-    ({ dash: viewDash, req: viewReq, eq: viewEq, docs: viewDocs, err: viewErr, team: viewTeam, port: viewPort, rev: viewRev, acad: viewAcad, vid: viewVid, users: viewUsers, text: viewText, set: viewSet })[tab](arg);
+    ({ dash: viewDash, req: viewReq, eq: viewEq, docs: viewDocs, err: viewErr, team: viewTeam, port: viewPort, rev: viewRev, acad: viewAcad, vid: viewVid, man: viewMan, users: viewUsers, text: viewText, set: viewSet })[tab](arg);
     main.focus({ preventScroll: true });
     window.scrollTo(0, 0);
   }
@@ -689,26 +693,28 @@
   }
 
   /* ---------- Foydalanuvchilar ---------- */
-  const UEV = { register: 'Ro‘yxatdan o‘tdi', login: 'Kirdi', reset_code: 'Parolni tiklash kodi so‘radi', reset_admin: 'Parolni tiklashni so‘radi (Telegram ulanmagan)', reset_done: 'Parolni tikladi', password: 'Parolni o‘zgartirdi', password_admin: 'Admin vaqtinchalik parol berdi', tg_link: 'Telegram ulandi', academy_join: 'Akademiyaga qo‘shildi', lesson: 'Darsni tugatdi', quiz_pass: 'Testdan o‘tdi', quiz_fail: 'Testdan o‘ta olmadi', video: 'Video ko‘rdi', request: 'Ariza yubordi' };
+  const UEV = { register: 'Ro‘yxatdan o‘tdi', login: 'Kirdi', reset_code: 'Parolni tiklash kodi so‘radi', reset_admin: 'Parolni tiklashni so‘radi (Telegram ulanmagan)', reset_done: 'Parolni tikladi', password: 'Parolni o‘zgartirdi', password_admin: 'Admin vaqtinchalik parol berdi', tg_link: 'Telegram ulandi', academy_join: 'Akademiyaga qo‘shildi', lesson: 'Darsni tugatdi', quiz_pass: 'Testdan o‘tdi', quiz_fail: 'Testdan o‘ta olmadi', video: 'Video ko‘rdi', request: 'Ariza yubordi', login_fail: '⚠ Noto‘g‘ri parol bilan kirishga urinish', verified: 'Akkauntni tasdiqladi', sessions_revoke: 'Boshqa qurilmalardan chiqdi', sessions_admin: 'Admin barcha qurilmalardan chiqardi', manual: 'Qo‘llanmani ochdi' };
+  const online = (iso) => iso && Date.now() - Date.parse(iso) < 5 * 60e3;
   async function viewUsers(id) {
     if (id) return userDetail(+id);
     const q = h('input', { type: 'search', placeholder: 'Ism, telefon, email yoki korxona', 'aria-label': 'Qidirish' });
-    main.append(head('Foydalanuvchilar', 'Saytda ro‘yxatdan o‘tgan barcha foydalanuvchilar, ularning arizalari, o‘qishi va faolligi.', h('a', { class: 'btn btn-ghost', href: '/admin/api/users.csv', text: 'CSV yuklab olish' })));
-    const kp = h('section', { class: 'kpis k3' }); main.append(kp);
+    if (id === 'activity') return usersActivity();
+    main.append(head('Foydalanuvchilar', 'Saytda ro‘yxatdan o‘tgan barcha foydalanuvchilar, ularning arizalari, o‘qishi va faolligi.', h('a', { class: 'btn btn-ghost', href: '#users/activity', text: 'Faollik lentasi' }), h('a', { class: 'btn btn-ghost', href: '/admin/api/users.csv', text: 'CSV yuklab olish' })));
+    const kp = h('section', { class: 'kpis' }); main.append(kp);
     main.append(h('form', { class: 'inline-form', onsubmit: (e) => { e.preventDefault(); load(); } }, q, h('button', { class: 'btn btn-ghost', type: 'submit', text: 'Qidirish' })));
     const box = h('div', { class: 'card tbl-card' }, loading()); main.append(box);
     async function load() {
       let d;
       try { d = await api('/users' + (q.value.trim() ? `?q=${encodeURIComponent(q.value.trim())}` : '')); } catch (e) { clear(box).append(h('p', { class: 'err', text: errText(e) })); return; }
-      clear(kp).append(kpi('Jami foydalanuvchi', num(d.total.all)), kpi('Oxirgi 7 kunda yangi', num(d.total.week)), kpi('Oxirgi 7 kunda kirgan', num(d.total.active)));
+      clear(kp).append(kpi('Jami foydalanuvchi', num(d.total.all)), kpi('Hozir saytda', num(d.total.online)), kpi('Tasdiqlangan', num(d.total.verified)), kpi('7 kunda yangi', num(d.total.week)), kpi('7 kunda faol', num(d.total.active)));
       clear(box);
       if (!d.rows.length) return box.append(empty(q.value ? 'Hech narsa topilmadi.' : 'Hali hech kim ro‘yxatdan o‘tmagan.'));
       box.append(h('div', { class: 'tbl-scroll' }, h('table', { class: 'tbl' },
-        h('thead', {}, h('tr', {}, ['Ism', 'Login', 'Korxona', 'Ro‘yxatdan', 'Oxirgi faollik', 'Arizalar', 'Darslar', 'Sertifikat', 'Telegram', ''].map((c) => h('th', { text: c })))),
+        h('thead', {}, h('tr', {}, ['Ism', 'Login', 'Korxona', 'Ro‘yxatdan', 'Oxirgi faollik', 'Arizalar', 'Darslar', 'Sertifikat', 'Telegram', 'Holat'].map((c) => h('th', { text: c })))),
         h('tbody', {}, d.rows.map((u) => h('tr', { class: 'row-link', tabindex: '0', onclick: () => { location.hash = `users/${u.id}`; }, onkeydown: (e) => { if (e.key === 'Enter') location.hash = `users/${u.id}`; } },
-          h('td', {}, h('b', { text: u.name })), h('td', { class: 'mono', text: u.login }), h('td', { text: u.company || '—' }), h('td', { class: 'nowrap', text: fmtDate(u.created_at) }),
-          h('td', { class: 'nowrap', text: fmtDate(u.last_active || u.last_login) }), h('td', { text: num(u.requests) }), h('td', { text: num(u.lessons) }), h('td', { text: num(u.certs) }),
-          h('td', { text: u.tg ? 'Ulangan' : '—' }), h('td', {}, u.blocked ? h('span', { class: 'tag warn', text: 'Bloklangan' }) : null)))))));
+          h('td', {}, online(u.last_seen) ? h('span', { class: 'dot on', title: 'Hozir saytda' }) : null, h('b', { text: ' ' + u.name })), h('td', { class: 'mono' }, u.login, u.verified ? h('span', { class: 'tag ok', title: 'SMS yoki email bilan tasdiqlangan', text: '✓' }) : null), h('td', { text: u.company || '—' }), h('td', { class: 'nowrap', text: fmtDate(u.created_at) }),
+          h('td', { class: 'nowrap', text: fmtDate(u.last_seen || u.last_active || u.last_login) }), h('td', { text: num(u.requests) }), h('td', { text: num(u.lessons) }), h('td', { text: num(u.certs) }),
+          h('td', { text: u.tg ? 'Ulangan' : '—' }), h('td', {}, u.blocked ? h('span', { class: 'tag warn', text: 'Bloklangan' }) : null, u.fails >= 3 ? h('span', { class: 'tag warn', title: 'Oxirgi sutkada noto‘g‘ri parol urinishlari', text: `⚠ ${u.fails} urinish` }) : null)))))));
     }
     load();
   }
@@ -723,18 +729,131 @@
         if (!confirm('Yangi vaqtinchalik parol yaratilsinmi? Eski parol ishlamay qoladi.')) return;
         try { const r = await api(`/users/${id}/password`, { method: 'POST', body: {} }); clear(pwBox).append(h('b', { text: 'Yangi parol: ' }), h('code', { text: r.password }), ' ', h('span', { class: 'muted', text: 'Foydalanuvchiga ayting. U kabinetda o‘z parolini qo‘yadi. Bu parol boshqa ko‘rsatilmaydi.' })); pwBox.hidden = false; } catch (e) { toast(errText(e), 'bad'); }
       } }),
+      h('button', { type: 'button', class: 'btn btn-ghost', text: 'Barcha qurilmalardan chiqarish', onclick: () => act({ logout: true }, 'Barcha qurilmalardan chiqarildi') }),
+      h('button', { type: 'button', class: 'btn btn-ghost', text: u.verified ? 'Tasdiqni olib tashlash' : 'Tasdiqlangan deb belgilash', onclick: () => act({ verified: !u.verified }, 'Saqlandi') }),
       h('button', { type: 'button', class: 'btn btn-ghost', text: u.blocked ? 'Blokdan chiqarish' : 'Bloklash', onclick: () => act({ blocked: !u.blocked }, u.blocked ? 'Blokdan chiqarildi' : 'Bloklandi') }),
       h('button', { type: 'button', class: 'btn btn-danger', text: 'O‘chirish', onclick: async () => { if (!confirm('Foydalanuvchi o‘chirilsinmi? Arizalari va kurs natijalari saqlanib qoladi.')) return; await api(`/users/${id}`, { method: 'DELETE' }); toast('O‘chirildi'); location.hash = 'users'; } })));
     main.append(pwBox);
-    main.append(h('section', { class: 'kpis kpis-sm' }, kpi('Ro‘yxatdan o‘tgan', fmtDate(u.created_at)), kpi('Oxirgi kirish', fmtDate(u.last_login)), kpi('Kirishlar soni', num(u.login_count)), kpi('Telegram', u.tg ? 'Ulangan' : 'Ulanmagan'), kpi('Holat', u.blocked ? 'Bloklangan' : 'Faol')));
+    main.append(h('section', { class: 'kpis kpis-sm' }, kpi('Ro‘yxatdan o‘tgan', fmtDate(u.created_at)), kpi('Oxirgi kirish', fmtDate(u.last_login)), kpi('Kirishlar soni', num(u.login_count)), kpi('Telegram', u.tg ? 'Ulangan' : 'Ulanmagan'), kpi('Tasdiq', u.verified ? 'Tasdiqlangan' : 'Yo‘q'), kpi('Holat', u.blocked ? 'Bloklangan' : online(u.last_seen) ? 'Hozir saytda' : 'Faol')));
     main.append(h('div', { class: 'split' },
       h('div', { class: 'stack' },
         h('div', { class: 'card' }, h('h2', { text: `Arizalar (${u.requestsList.length})` }),
           u.requestsList.length ? h('table', { class: 'tbl' }, h('tbody', {}, u.requestsList.map((r) => h('tr', { class: 'row-link', onclick: () => { location.hash = `req/${r.id}`; } }, h('td', { class: 'mono', text: r.code }), h('td', { class: 'nowrap', text: fmtDate(r.created_at) }), h('td', { text: r.equipment || r.service || '—' }), h('td', {}, pill(r.status)))))) : empty('Ariza yo‘q')),
         h('div', { class: 'card' }, h('h2', { text: 'Kurslar' }), u.learner ? h('p', { class: 'muted', text: `Kirish kodi: ${u.learner.code} · ${u.learner.company || ''}` }) : null,
           u.courses.length ? h('table', { class: 'tbl' }, h('tbody', {}, u.courses.map((c) => h('tr', {}, h('td', { text: c.title }), h('td', { text: `${c.done}/${c.total} dars` }), h('td', {}, c.passed ? h('a', { class: 'tag ok', href: `/academy/cert/${c.cert_id}/`, target: '_blank', rel: 'noopener', text: 'Sertifikat' }) : h('span', { class: 'muted', text: `${c.pct}%` })))))) : empty('Kursga yozilmagan'))),
+      h('div', { class: 'stack' }, h('div', { class: 'card' }, h('h2', { text: `Kirilgan qurilmalar (${u.sessionsList.length})` }),
+        u.sessionsList.length ? h('ul', { class: 'ev-list' }, u.sessionsList.map((x) => h('li', {}, h('span', { class: 'nowrap muted', text: fmtDate(x.last_seen || x.created_at) }), h('span', { text: x.ua || 'Brauzer' }), h('code', { text: x.ip || '' })))) : empty('Hech qayerda kirilmagan')),
       h('div', { class: 'card' }, h('h2', { text: 'Faollik' }),
-        u.events.length ? h('ul', { class: 'ev-list' }, u.events.map((e) => h('li', {}, h('span', { class: 'nowrap muted', text: fmtDate(e.at) }), h('span', { text: UEV[e.kind] || e.kind }), e.ref ? h('code', { text: e.ref }) : null))) : empty('Hali faollik yo‘q'))));
+        u.events.length ? h('ul', { class: 'ev-list' }, u.events.map((e) => h('li', {}, h('span', { class: 'nowrap muted', text: fmtDate(e.at) }), h('span', { text: UEV[e.kind] || e.kind }), e.ref ? h('code', { text: e.ref }) : null))) : empty('Hali faollik yo‘q')))));
+  }
+  async function usersActivity() {
+    main.append(h('a', { href: '#users', class: 'back', text: '← Foydalanuvchilar' }), head('Faollik lentasi', 'Barcha foydalanuvchilarning oxirgi harakatlari: kirish, ro‘yxatdan o‘tish, qo‘llanma va video ochish, noto‘g‘ri parol urinishlari.'));
+    const box = h('div', { class: 'card' }, loading()); main.append(box);
+    let rows; try { rows = await api('/users-activity'); } catch (e) { return clear(box).append(h('p', { class: 'err', text: errText(e) })); }
+    clear(box).append(rows.length ? h('ul', { class: 'ev-list' }, rows.map((e) => h('li', { class: e.kind === 'login_fail' ? 'ev-warn' : '' }, h('span', { class: 'nowrap muted', text: fmtDate(e.at) }), h('a', { href: `#users/${e.uid}`, text: e.name }), h('span', { text: UEV[e.kind] || e.kind }), e.ref ? h('code', { text: e.ref }) : null))) : empty('Hali faollik yo‘q'));
+  }
+
+  /* ---------- Qo'llanmalar ---------- */
+  const fsize = (b) => (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
+  async function viewMan(id) {
+    if (id) return editMan(id === 'new' ? null : +id);
+    main.append(head('Qo‘llanmalar', 'PDF, Word yoki Excel qo‘llanmalar. Foydalanuvchilar kabinetdagi “Qo‘llanmalar” bo‘limida va /manuals/ sahifasida ochadi.', h('a', { class: 'btn btn-ghost', href: '/manuals/', target: '_blank', rel: 'noopener', text: 'Saytda ko‘rish ↗' }), h('a', { class: 'btn btn-primary', href: '#man/new', text: '+ Yangi qo‘llanma' })));
+    const box = h('div', { class: 'card tbl-card' }, loading()); main.append(box);
+    let rows; try { rows = await api('/manuals'); } catch (e) { return clear(box).append(h('p', { class: 'err', text: errText(e) })); }
+    clear(box);
+    if (!rows.length) return box.append(empty('Hali qo‘llanma yo‘q. “+ Yangi qo‘llanma” ni bosing va faylni yuklang.'));
+    box.append(h('div', { class: 'tbl-scroll' }, h('table', { class: 'tbl' }, h('thead', {}, h('tr', {}, ['Nomi', 'Fayl', 'Kimga', 'Ochilgan', 'Qo‘shilgan', ''].map((c) => h('th', { text: c })))),
+      h('tbody', {}, rows.map((m) => h('tr', { class: 'row-link', tabindex: '0', onclick: () => { location.hash = `man/${m.id}`; } },
+        h('td', {}, h('b', { text: m.data.title?.uz || m.data.title?.ru || '—' }), m.data.category?.uz ? h('small', { class: 'muted block', text: m.data.category.uz }) : null),
+        h('td', { class: 'mono', text: `${(m.file || '').split('.').pop().toUpperCase()} · ${fsize(m.size)}` }), h('td', { text: m.access === 'public' ? 'Hammaga' : 'Ro‘yxatdan o‘tganlarga' }),
+        h('td', { text: num(m.downloads) }), h('td', { class: 'nowrap', text: fmtDate(m.created_at) }), h('td', {}, m.published ? null : h('span', { class: 'tag', text: 'Yashirin' }))))))));
+  }
+  async function editMan(id) {
+    main.append(h('a', { href: '#man', class: 'back', text: '← Qo‘llanmalar' }));
+    let m = { data: {}, access: 'users', published: 1, sort: 0, file: null };
+    if (id) { const all = await api('/manuals'); m = all.find((x) => x.id === id); if (!m) return main.append(empty('Topilmadi')); }
+    const tri = { title: triField('Nomi', m.data.title, { max: 160 }), text: triField('Qisqa tavsif', m.data.text, { area: true, max: 1000 }), category: triField('Bo‘lim (masalan: Siemens, KUKA, Xavfsizlik)', m.data.category, { max: 60 }) };
+    let file = null;
+    const fin = h('input', { type: 'file', accept: '.pdf,.docx,.xlsx,.pptx,.zip,application/pdf' });
+    const fst = h('p', { class: 'muted', text: m.file ? `Joriy fayl: ${m.original || m.file} · ${fsize(m.size)}` : 'Fayl hali yuklanmagan' });
+    const bar = h('progress', { max: '100', value: '0', hidden: true });
+    let busy = false;
+    fin.addEventListener('change', () => {
+      const f = fin.files[0]; if (!f) return;
+      if (f.size > 50 * 1024 * 1024) return toast('Fayl 50 MB dan katta', 'bad');
+      busy = true; bar.hidden = false; bar.value = 0; fst.textContent = `Yuklanmoqda: ${f.name}`;
+      const x = new XMLHttpRequest();
+      x.open('POST', '/admin/api/manual-upload?name=' + encodeURIComponent(f.name));
+      x.setRequestHeader('X-CSRF', CSRF); x.setRequestHeader('Content-Type', 'application/octet-stream');
+      x.upload.onprogress = (e) => { if (e.lengthComputable) bar.value = Math.round((e.loaded / e.total) * 100); };
+      x.onload = () => { busy = false; let d = {}; try { d = JSON.parse(x.responseText); } catch {}
+        if (x.status !== 200) { fst.textContent = errText(new Error(d.error || String(x.status))); bar.hidden = true; return; }
+        file = d.file; fst.textContent = `Yuklandi: ${f.name} · ${fsize(d.size)}`; bar.value = 100;
+        if (!tri.title.value().uz) { const inp = tri.title.querySelector('input'); if (inp && !inp.value) inp.value = f.name.replace(/\.[a-z0-9]+$/i, ''); } };
+      x.onerror = () => { busy = false; fst.textContent = 'Yuklash uzildi, qayta urinib ko‘ring'; };
+      x.send(f);
+    });
+    const access = h('select', {}, h('option', { value: 'users', text: 'Faqat ro‘yxatdan o‘tganlarga' }), h('option', { value: 'public', text: 'Hammaga ochiq' }));
+    access.value = m.access;
+    const sort = h('input', { type: 'number', value: String(m.sort || 0) });
+    const published = h('input', { type: 'checkbox', checked: Boolean(m.published) });
+    const notify = h('input', { type: 'checkbox', checked: !id });
+    const save = h('button', { class: 'btn btn-primary', type: 'submit', text: 'Saqlash' });
+    main.append(h('form', { class: 'editor', onsubmit: async (e) => {
+      e.preventDefault();
+      if (busy) return toast('Fayl hali yuklanmoqda', 'bad');
+      save.disabled = true;
+      try {
+        await api(`/manuals${id ? '/' + id : ''}`, { method: 'POST', body: { title: tri.title.value(), text: tri.text.value(), category: tri.category.value(), access: access.value, published: published.checked, sort: sort.value, file: file || undefined, notify: notify.checked } });
+        toast('Saqlandi'); location.hash = 'man';
+      } catch (er) { toast(errText(er), 'bad'); } finally { save.disabled = false; }
+    } },
+    head(id ? 'Qo‘llanmani tahrirlash' : 'Yangi qo‘llanma', 'Faylni tanlang (PDF tavsiya qilinadi, 50 MB gacha), nomini uch tilda yozing va saqlang.'),
+    h('div', { class: 'split' },
+      h('div', { class: 'stack' }, h('div', { class: 'card' }, h('b', { text: 'Fayl' }), fin, bar, fst, id && m.file ? h('a', { class: 'btn btn-ghost sm', href: `/admin/api/manuals/${id}/file`, target: '_blank', rel: 'noopener', text: 'Faylni ochish ↗' }) : null), h('div', { class: 'card' }, tri.title, tri.text, tri.category)),
+      h('div', { class: 'stack' },
+        h('div', { class: 'card' }, field('Kim ochishi mumkin', access, 'Mijozlarga mo‘ljallangan qo‘llanmalarni “faqat ro‘yxatdan o‘tganlarga” qoldiring'), field('Tartib', sort, 'Kichik raqam yuqorida'), h('label', { class: 'cb' }, published, ' Saytda ko‘rsatish'), h('label', { class: 'cb' }, notify, ' Telegram ulagan foydalanuvchilarga xabar yuborish')),
+        h('div', { class: 'sticky-act' }, save,
+          id ? h('button', { type: 'button', class: 'btn btn-danger', text: 'O‘chirish', onclick: async () => { if (!confirm('Qo‘llanma va fayl o‘chirilsinmi?')) return; await api(`/manuals/${id}`, { method: 'DELETE' }); toast('O‘chirildi'); location.hash = 'man'; } }) : null)))));
+  }
+
+  /* ---------- Xavfsizlik (Sozlamalar ichida) ---------- */
+  const RES = { ok: 'Kirdi', bad_password: 'Noto‘g‘ri parol', bad_otp: 'Noto‘g‘ri kod', rate: 'Bloklandi (ko‘p urinish)' };
+  async function securityCard() {
+    let d; try { d = await api('/security'); } catch (e) { return h('div', { class: 'card' }, h('p', { class: 'err', text: errText(e) })); }
+    const box = h('div', {});
+    const code = h('input', { type: 'text', inputmode: 'numeric', maxlength: '6', placeholder: '123456', autocomplete: 'one-time-code' });
+    if (d.totp) {
+      const pw = h('input', { type: 'password', autocomplete: 'current-password', placeholder: 'Admin paroli' });
+      box.append(h('p', {}, h('span', { class: 'dot on' }), h('b', { text: ' Ikki bosqichli kirish yoqilgan.' })), h('p', { class: 'muted', text: 'Admin panelga kirishda parol va telefon ilovasidagi kod so‘raladi. Telefon yo‘qolsa: hostingdagi ADMIN_PASSWORD ni yangi parolga almashtiring, ikki bosqichli kirish o‘chadi.' }),
+        h('details', {}, h('summary', { text: 'O‘chirish' }), h('div', { class: 'stack' }, field('Parol', pw), field('Ilovadagi kod', code),
+          h('button', { type: 'button', class: 'btn btn-danger', text: 'Ikki bosqichli kirishni o‘chirish', onclick: async () => { try { await api('/2fa/disable', { method: 'POST', body: { password: pw.value, code: code.value } }); toast('O‘chirildi'); route(); } catch (e) { toast(errText(e), 'bad'); } } }))));
+    } else {
+      const area = h('div', { class: 'stack' });
+      box.append(h('p', {}, h('span', { class: 'dot off' }), h('b', { text: ' Ikki bosqichli kirish o‘chiq.' })), h('p', { class: 'muted', text: 'Yoqing: parol o‘g‘irlansa ham, telefoningizdagi kodsiz admin panelga hech kim kira olmaydi.' }), area,
+        h('button', { type: 'button', class: 'btn btn-primary', text: 'Yoqish', onclick: async (ev) => {
+          ev.target.remove();
+          try {
+            const r = await api('/2fa/start', { method: 'POST' });
+            area.append(h('p', { text: '1. Telefoningizga Google Authenticator yoki Microsoft Authenticator ilovasini o‘rnating.' }), h('p', { text: '2. Ilovada “+” ni bosib, shu QR kodni skanerlang:' }),
+              h('img', { src: `/admin/api/2fa/qr.svg?t=${Date.now()}`, alt: 'QR kod', width: '200', height: '200', class: 'qr-2fa' }),
+              h('p', { class: 'muted' }, 'Yoki kalitni qo‘lda kiriting: ', h('code', { text: r.secret })),
+              h('p', { text: '3. Ilovadagi 6 xonali kodni yozing:' }), code,
+              h('button', { type: 'button', class: 'btn btn-primary', text: 'Tasdiqlash va yoqish', onclick: async () => { try { await api('/2fa/enable', { method: 'POST', body: { code: code.value } }); toast('Ikki bosqichli kirish yoqildi'); route(); } catch (e) { toast(errText(e), 'bad'); } } }));
+          } catch (e) { toast(errText(e), 'bad'); }
+        } }));
+    }
+    const v = d.verify || {};
+    const sent = (ch) => { const r = (v.sent24 || []).find((x) => x.channel === ch); return r ? `24 soatda ${r.ok || 0} ta yuborildi${r.failed ? `, ${r.failed} ta xato` : ''}` : '24 soatda yuborilmagan'; };
+    return h('div', { class: 'card' }, h('h2', { text: 'Xavfsizlik' }), box,
+      h('h3', { text: 'Ro‘yxatdan o‘tishda tasdiqlash' }),
+      h('ul', { class: 'conn' },
+        h('li', {}, h('span', { class: `dot ${v.sms ? 'on' : 'off'}` }), h('div', {}, h('b', { text: 'SMS (Eskiz.uz)' }), h('small', { class: 'muted block', text: v.sms ? sent('sms') : 'O‘chiq. Hostingda ESKIZ_EMAIL va ESKIZ_PASSWORD ni kiriting.' }))),
+        h('li', {}, h('span', { class: `dot ${v.email ? 'on' : 'off'}` }), h('div', {}, h('b', { text: 'Email (Brevo)' }), h('small', { class: 'muted block', text: v.email ? sent('email') : 'O‘chiq. Hostingda BREVO_API_KEY va MAIL_FROM ni kiriting.' })))),
+      (v.lastErrors || []).length ? h('p', { class: 'err', text: `Oxirgi xato: ${v.lastErrors[0].error}` }) : null,
+      h('p', { class: 'muted', text: `Foydalanuvchilarning noto‘g‘ri parol urinishlari (24 soat): ${d.fails24}` }),
+      h('h3', { text: 'Admin panelga kirishlar' }),
+      h('ul', { class: 'ev-list' }, d.log.slice(0, 15).map((x) => h('li', { class: x.ok ? '' : 'ev-warn' }, h('span', { class: 'nowrap muted', text: fmtDate(x.at) }), h('span', { text: RES[x.result] || x.result }), h('code', { text: `${x.ip || ''} · ${x.ua || ''}` })))));
   }
 
   /* ---------- Matnlar ---------- */
@@ -1219,7 +1338,7 @@
       e.preventDefault();
       try { await api('/password', { method: 'POST', body: { current: cur.value, next: nxt.value } }); toast('Parol o‘zgardi. Qayta kiring.'); showLogin(); } catch (er) { toast(errText(er), 'bad'); }
     } }, h('h2', { text: 'Parolni o‘zgartirish' }), field('Joriy parol', cur), field('Yangi parol', nxt, 'Kamida 10 belgi. Barcha qurilmalardagi sessiyalar yopiladi.'), h('button', { class: 'btn btn-ghost', type: 'submit', text: 'O‘zgartirish' }));
-    main.append(h('div', { class: 'split' }, h('div', { class: 'stack' }, form, await sectionsCard(), await sigCard()), h('div', { class: 'stack' }, await heroCard(), conn, pwForm)));
+    main.append(h('div', { class: 'split' }, h('div', { class: 'stack' }, form, await sectionsCard(), await sigCard()), h('div', { class: 'stack' }, await securityCard(), await heroCard(), conn, pwForm)));
   }
 
   // Bosh sahifadagi bo‘limlarni yashirish yoki qayta ko‘rsatish

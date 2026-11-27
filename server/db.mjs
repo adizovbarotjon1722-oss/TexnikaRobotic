@@ -92,6 +92,12 @@ CREATE TABLE IF NOT EXISTS video_files (name TEXT PRIMARY KEY, original TEXT, si
 fs.mkdirSync(path.join(DATA_DIR, 'media/video'), { recursive: true });
 addCol('learners', 'user_id', 'INTEGER');
 addCol('requests', 'user_id', 'INTEGER');
+// 20-bosqich: tasdiqlangan login, qurilmalar (sessiyalar) ro'yxati
+addCol('users', 'verified', 'INTEGER NOT NULL DEFAULT 0');
+addCol('users', 'last_seen', 'TEXT');
+addCol('user_sessions', 'ua', 'TEXT');
+addCol('user_sessions', 'ip', 'TEXT');
+addCol('user_sessions', 'last_seen', 'TEXT');
 for (const r of db.prepare('SELECT code FROM access_codes WHERE manager_token IS NULL').all()) {
   db.prepare('UPDATE access_codes SET manager_token = ? WHERE code = ?').run(crypto.randomBytes(18).toString('base64url'), r.code);
 }

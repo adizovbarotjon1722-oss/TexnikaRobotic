@@ -1026,14 +1026,13 @@
     var d = box.dataset;
     var q = new URLSearchParams(location.search);
     var next = q.get('next') || '';
-    if (!/^\/(?!\/)[A-Za-z0-9\/_.-]*$/.test(next)) next = '';
+    if (!/^\/(?!\/)[A-Za-z0-9\/_.#-]*$/.test(next)) next = '';
     var val = function (id) { var x = box.querySelector('#' + id); return x ? x.value : ''; };
     function status(f, text, ok) { var st = f.querySelector('.form-status'); if (!st) return; st.textContent = text || ''; st.className = 'form-status' + (text ? (ok ? ' is-ok' : ' is-err') : ''); }
     function errText(r) {
       var e = r && r.data && r.data.error;
-      return ({ bad_login: d.errLogin, exists: d.errExists, weak: d.errWeak, name: d.errName, login: d.errLoginFmt, bad_code: d.errCode, blocked: d.errBlocked, rate: d.errRate, bad_password: d.errCurrent })[e] || d.errNet;
+      return ({ bad_login: d.errLogin, exists: d.errExists, weak: d.errWeak2, name: d.errName, login: d.errLoginFmt, bad_code: d.errCode, blocked: d.errBlocked, rate: d.errRate, bad_password: d.errCurrent, send: d.errSend, cap: d.errSend, wait: d.errWait })[e] || d.errNet;
     }
-    // Kirgandan keyin: boshqa odamning eski o'qish kaliti qolmasligi uchun tozalanadi
     function enter() { store('ac_token', null); location.href = next || location.pathname; }
     function bind(sel, fn) {
       var f = box.querySelector(sel);
@@ -1045,6 +1044,14 @@
         b.disabled = true;
         Promise.resolve().then(function () { return fn(f); }).catch(function () { status(f, d.errNet); }).then(function () { b.disabled = false; });
       });
+    }
+    // Kodni qayta yuborish tugmasi: 60 soniya kutish
+    function cooldown(btn, sec) {
+      if (!btn) return;
+      var label = d.resend, left = sec || 60;
+      btn.disabled = true;
+      var tick = function () { if (left <= 0) { btn.disabled = false; btn.textContent = label; return; } btn.textContent = d.resendIn.replace('{s}', left); left--; setTimeout(tick, 1000); };
+      tick();
     }
     var panes = { login: '#f-login', register: '#f-register', forgot: '#f-forgot' };
     function tab(name) {
@@ -1059,20 +1066,70 @@
       var t0 = q.get('tab') || location.hash.slice(1);
       if (t0 === 'register' || t0 === 'forgot') tab(t0);
     }
+    // Kod maydoni: faqat raqam, 6 ta bo'lganda forma o'zi yuboriladi
+    each(box.querySelectorAll('.code-in'), function (x) {
+      x.addEventListener('input', function () {
+        x.value = x.value.replace(/\D/g, '').slice(0, 6);
+        var f = x.form; if (x.value.length === 6 && f && f.id !== 'f-forgot2' && f.requestSubmit) f.requestSubmit();
+      });
+    });
 
     bind('#f-login', function (f) {
       var lg = val('l-login').trim(), pw = val('l-pw');
       if (!lg || !pw) return status(f, d.errLogin);
       return api('POST', '/api/account/login', { login: lg, password: pw }).then(function (r) { if (r.status === 200) return enter(); status(f, errText(r)); });
     });
-    bind('#f-register', function (f) {
-      var name = clean(val('r-name'), 80), lg = val('r-login').trim(), pw = val('r-pw');
-      if (name.length < 2) return status(f, d.errName);
-      if (!/@/.test(lg) && lg.replace(/\D/g, '').length < 9) return status(f, d.errLoginFmt);
-      if (pw.length < 8) return status(f, d.errWeak);
-      if (pw !== val('r-pw2')) return status(f, d.errMatch);
-      return api('POST', '/api/account/register', { name: name, login: lg, company: clean(val('r-company'), 100), password: pw, lang: d.lang, website: val('r-web') }).then(function (r) { if (r.status === 200) return enter(); status(f, errText(r)); });
-    });
+
+    // Ro'yxatdan o'tish: 1) ma'lumotlar 2) kerak bo'lsa SMS/email kod
+    var reg = box.querySelector('#f-register');
+    var regStep = 1;
+    function regBody() { return { name: clean(val('r-name'), 80), login: val('r-login').trim(), company: clean(val('r-company'), 100), password: val('r-pw'), lang: d.lang, website: val('r-web') }; }
+    function regMode(step, channel) {
+      regStep = step;
+      var fields = reg.querySelector('.reg-fields'), code = reg.querySelector('#r-code'), btn = reg.querySelector('button[type="submit"]');
+      fields.hidden = step === 2; code.hidden = step !== 2;
+      btn.firstChild.textContent = step === 2 ? btn.getAttribute('data-l2') : btn.getAttribute('data-l1');
+      if (step === 2) {
+        code.querySelector('.cab-code-lead').textContent = channel === 'email' ? d.codeLeadEmail : d.codeLeadSms;
+        var ci = code.querySelector('input'); ci.value = ''; ci.focus();
+        cooldown(code.querySelector('[data-resend]'), 60);
+      }
+    }
+    function askCode(f) {
+      var b = regBody();
+      return api('POST', '/api/account/code', { purpose: 'register', login: b.login, lang: d.lang, website: b.website }).then(function (r) {
+        if (r.status !== 200) return status(f, errText(r));
+        status(f, '');
+        if (!r.data.channel) return register(f, '');
+        regMode(2, r.data.channel);
+      });
+    }
+    function register(f, code) {
+      var b = regBody(); b.code = code;
+      return api('POST', '/api/account/register', b).then(function (r) {
+        if (r.status === 200) return enter();
+        if (r.data && r.data.error === 'need_code') return askCode(f);
+        status(f, errText(r));
+      });
+    }
+    if (reg) {
+      bind('#f-register', function (f) {
+        if (regStep === 2) {
+          var c = val('r-code-in');
+          if (c.length !== 6) return status(f, d.errCode);
+          return register(f, c);
+        }
+        var b = regBody();
+        if (b.name.length < 2) return status(f, d.errName);
+        if (!/@/.test(b.login) && b.login.replace(/\D/g, '').length < 9) return status(f, d.errLoginFmt);
+        if (b.password.length < 8) return status(f, d.errWeak2);
+        if (b.password !== val('r-pw2')) return status(f, d.errMatch);
+        return register(f, '');
+      });
+      reg.querySelector('[data-resend]').addEventListener('click', function () { askCode(reg); });
+      reg.querySelector('[data-change]').addEventListener('click', function () { regMode(1); status(reg, ''); });
+    }
+
     var resetLogin = '';
     bind('#f-forgot1', function (f) {
       var lg = val('fg-login').trim();
@@ -1080,18 +1137,73 @@
       return api('POST', '/api/account/forgot', { login: lg }).then(function (r) {
         if (r.status !== 200) return status(f, errText(r));
         resetLogin = lg;
-        status(f, d.codeSent, true);
+        var ch = r.data && r.data.channel;
+        status(f, ch === 'sms' ? d.codeSentSms : ch === 'email' ? d.codeSentEmail : d.codeSent, true);
         var f2 = box.querySelector('#f-forgot2'); f2.hidden = false; f2.querySelector('input').focus();
       });
     });
     bind('#f-forgot2', function (f) {
       var pw = val('fg-pw');
-      if (pw.length < 8) return status(f, d.errWeak);
+      if (pw.length < 8) return status(f, d.errWeak2);
       if (pw !== val('fg-pw2')) return status(f, d.errMatch);
       return api('POST', '/api/account/reset', { login: resetLogin, code: val('fg-code'), password: pw }).then(function (r) { if (r.status === 200) return enter(); status(f, errText(r)); });
     });
 
-    // Kabinet
+    /* ---- Kabinet: yon menyu bo'limlari ---- */
+    var cab = box.querySelector('.cab');
+    if (cab) {
+      var names = Array.prototype.map.call(cab.querySelectorAll('.cab-pane'), function (p) { return p.getAttribute('data-pane'); });
+      var show = function (name, focus) {
+        if (names.indexOf(name) < 0) name = 'home';
+        each(cab.querySelectorAll('.cab-pane'), function (p) { p.hidden = p.getAttribute('data-pane') !== name; });
+        each(cab.querySelectorAll('.cab-ni'), function (a) { if (a.getAttribute('data-go') === name) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+        each(cab.querySelectorAll('.cab-pane:not([data-pane="' + name + '"]) video'), function (v) { if (!v.paused) v.pause(); });
+        if (focus) { var h = cab.querySelector('#h-' + name); if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); } if (window.innerWidth < 900) cab.querySelector('.cab-main').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      };
+      each(cab.querySelectorAll('[data-go]'), function (a) {
+        a.addEventListener('click', function (e) { e.preventDefault(); var n = a.getAttribute('data-go'); history.replaceState(null, '', '#' + n); show(n, true); });
+      });
+      window.addEventListener('hashchange', function () { show(location.hash.slice(1), false); });
+      show(location.hash.slice(1), false);
+      each(cab.querySelectorAll('.chip'), function (c) {
+        c.addEventListener('click', function () {
+          var cat = c.getAttribute('data-cat');
+          each(cab.querySelectorAll('.chip'), function (x) { var on = x === c; x.classList.toggle('is-on', on); x.setAttribute('aria-pressed', String(on)); });
+          each(cab.querySelectorAll('.vid-card'), function (card) { card.hidden = !!cat && card.getAttribute('data-cat') !== cat; });
+        });
+      });
+      each(cab.querySelectorAll('video[data-vid]'), function (v) {
+        var counted = false;
+        v.addEventListener('play', function () { if (counted) return; counted = true; api('POST', '/api/videos/' + v.getAttribute('data-vid') + '/view', {}); });
+      });
+    }
+    var mq = box.querySelector('#man-q');
+    if (mq) mq.addEventListener('input', function () {
+      var s = mq.value.trim().toLowerCase();
+      each(box.querySelectorAll('.man-row'), function (r) { r.hidden = !!s && r.getAttribute('data-q').indexOf(s) < 0; });
+    });
+
+    // Akkauntni tasdiqlash
+    var vf = box.querySelector('#f-verify');
+    if (vf) {
+      var vs = vf.querySelector('#vf-send');
+      var sendV = function () {
+        return api('POST', '/api/account/code', { purpose: 'verify', lang: d.lang }).then(function (r) {
+          if (r.status !== 200) return status(vf, errText(r));
+          status(vf, vf.getAttribute('data-channel') === 'email' ? d.codeLeadEmail : d.codeLeadSms, true);
+          vf.querySelector('.cab-verify-in').hidden = false; vf.querySelector('input').focus();
+          vs.textContent = d.resend; cooldown(vs, 60);
+        });
+      };
+      vs.addEventListener('click', sendV);
+      bind('#f-verify', function (f) {
+        return api('POST', '/api/account/verify', { code: val('vf-code') }).then(function (r) {
+          if (r.status !== 200) return status(f, errText(r));
+          status(f, d.verifiedOk, true); setTimeout(function () { location.reload(); }, 900);
+        });
+      });
+    }
+
     var out = box.querySelector('#acc-logout');
     if (out) out.addEventListener('click', function () {
       api('POST', '/api/account/logout', {}).then(function () { store('ac_token', null); location.href = location.pathname; });
@@ -1099,21 +1211,33 @@
     bind('#f-profile', function (f) {
       var name = clean(val('p-name'), 80);
       if (name.length < 2) return status(f, d.errName);
-      return api('POST', '/api/account/profile', { name: name, company: clean(val('p-company'), 100), lang: d.lang }).then(function (r) { status(f, r.status === 200 ? d.saved : errText(r), r.status === 200); });
+      return api('POST', '/api/account/profile', { name: name, company: clean(val('p-company'), 100), lang: val('p-lang') || d.lang }).then(function (r) { status(f, r.status === 200 ? d.saved : errText(r), r.status === 200); });
     });
     bind('#f-password', function (f) {
       var pw = val('pw-new');
-      if (pw.length < 8) return status(f, d.errWeak);
+      if (pw.length < 8) return status(f, d.errWeak2);
       if (pw !== val('pw-new2')) return status(f, d.errMatch);
       return api('POST', '/api/account/password', { current: val('pw-cur'), next: pw }).then(function (r) {
         if (r.status === 200) { f.reset(); return status(f, d.pwChanged, true); }
         status(f, errText(r));
       });
     });
+    // Qurilmalardan chiqarish
+    var devSt = box.querySelector('#dev-status');
+    box.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-end]');
+      if (!b) return;
+      b.disabled = true;
+      api('POST', '/api/account/sessions', { id: b.getAttribute('data-end') }).then(function (r) {
+        if (r.status !== 200) { b.disabled = false; devSt.textContent = d.errNet; devSt.className = 'form-status is-err'; return; }
+        if (b.getAttribute('data-end') === 'others') { each(box.querySelectorAll('.dev:not(.is-cur)'), function (x) { x.remove(); }); b.remove(); }
+        else { var li = b.closest('.dev'); if (li) li.remove(); }
+        devSt.textContent = d.ended; devSt.className = 'form-status is-ok';
+      });
+    });
     var tgs = box.querySelector('#tg-status');
     var link = box.querySelector('#tg-link');
     if (link) link.addEventListener('click', function () {
-      // Oyna bosish paytida ochiladi (keyin ochilsa brauzer bloklaydi), havola kelgach unga o'tadi
       var w = window.open('', '_blank');
       api('POST', '/api/account/tg-link', {}).then(function (r) {
         if (r.status !== 200) { if (w) w.close(); tgs.textContent = d.errNet; tgs.className = 'form-status is-err'; return; }

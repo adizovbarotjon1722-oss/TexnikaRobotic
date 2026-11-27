@@ -60,6 +60,10 @@ const ICONS = {
   plc: '<rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M9 5v14M15 5v14"/><path d="M5.5 9h1M5.5 12h1M11.5 9h1M11.5 12h1M11.5 15h1M17.5 9h1M17.5 12h1"/>',
   user: '<circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20.5c1.2-4 4-6 7.5-6s6.3 2 7.5 6"/>',
   play: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9v6l5-3z"/>',
+  book: '<path d="M4 4.5h6a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H4z"/><path d="M20 4.5h-6a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h6z"/>',
+  device: '<rect x="3" y="4.5" width="13" height="10" rx="1.2"/><path d="M6.5 18.5h6"/><rect x="17.5" y="8" width="4" height="11.5" rx="1"/>',
+  logout: '<path d="M14 4.5h4.5a1.5 1.5 0 0 1 1.5 1.5v12a1.5 1.5 0 0 1-1.5 1.5H14"/><path d="M10 16.5 5.5 12 10 7.5M5.5 12H15"/>',
+  home: '<path d="M3.5 11 12 4l8.5 7"/><path d="M6 9.5v10h12v-10"/>',
   stamp: '<path d="M9 3.5h6l-1 7h-4z"/><path d="M5 14.5c0-2 1.5-4 4-4h6c2.5 0 4 2 4 4v2H5z"/><path d="M4 20.5h16"/>'
 };
 export const icon = (n, cls = 'ic') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${ICONS[n] || ''}</svg>`;
@@ -177,6 +181,7 @@ function footer(t, lang, cfg, mode, sub = null) {
       <li><a href="${mode === 'preview' ? '#' : url(lang, 'documents/')}">${esc(t.v2.nav.docs)}</a></li>
       <li><a href="${mode === 'preview' ? '#' : url(lang, 'team/')}">${esc(t.v2.nav.team)}</a></li>
       <li><a href="${mode === 'preview' ? '#' : url(lang, 'videos/')}">${esc(t.vid.title)}</a></li>
+      <li><a href="${mode === 'preview' ? '#' : url(lang, 'manuals/')}">${esc(t.acc2.pageTitle)}</a></li>
       <li><a href="${mode === 'preview' ? '#' : url(lang, 'portfolio/')}">${esc(t.nav2.portfolio)}</a></li>
       <li><a href="${mode === 'preview' ? '#' : url(lang, 'errors/')}">${esc(t.nav3.errors)}</a></li>
       <li><a href="${mode === 'preview' ? '#' : url(lang, 'track/')}">${esc(t.nav2.track)}</a></li>

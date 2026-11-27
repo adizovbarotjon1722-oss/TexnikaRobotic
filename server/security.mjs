@@ -69,7 +69,8 @@ export function ensureAdminPassword() {
   const pw = env || randToken(12);
   if (pw.length < 10) throw new Error('ADMIN_PASSWORD kamida 10 belgidan iborat bo‘lishi kerak');
   setSetting('admin_hash', hashPassword(pw));
-  if (env) { setSetting('admin_env_fp', fp); db.prepare('DELETE FROM sessions').run(); }
+  // ADMIN_PASSWORD o'zgartirilsa ikki bosqichli kirish ham o'chadi: telefon yo'qolganda tiklash yo'li
+  if (env) { setSetting('admin_env_fp', fp); setSetting('admin_totp', ''); db.prepare('DELETE FROM sessions').run(); }
   return env ? null : pw;
 }
 
@@ -123,4 +124,35 @@ export function decodeImage(s, maxBytes = 8 * 1024 * 1024) {
 // Matnni tozalash: boshqaruv belgilari va yo'nalishni o'zgartiruvchi belgilar olib tashlanadi
 export function clean(v, max) {
   return String(v ?? '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F‪-‮⁦-⁩]/g, '').trim().slice(0, max);
+}
+
+/* Ikki bosqichli kirish (TOTP, RFC 6238): Google Authenticator, Microsoft Authenticator va boshqalar */
+const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+export function b32random(bytes = 20) {
+  const buf = crypto.randomBytes(bytes); let bits = 0, val = 0, out = '';
+  for (const b of buf) { val = (val << 8) | b; bits += 8; while (bits >= 5) { out += B32[(val >>> (bits - 5)) & 31]; bits -= 5; } }
+  if (bits > 0) out += B32[(val << (5 - bits)) & 31];
+  return out;
+}
+function b32decode(s) {
+  let bits = 0, val = 0; const out = [];
+  for (const ch of String(s).replace(/=+$/, '').toUpperCase()) { const i = B32.indexOf(ch); if (i < 0) continue; val = (val << 5) | i; bits += 5; if (bits >= 8) { out.push((val >>> (bits - 8)) & 255); bits -= 8; } }
+  return Buffer.from(out);
+}
+export function totp(secret, step = Math.floor(Date.now() / 30000)) {
+  const msg = Buffer.alloc(8); msg.writeBigUInt64BE(BigInt(step));
+  const h = crypto.createHmac('sha1', b32decode(secret)).update(msg).digest();
+  const o = h[h.length - 1] & 15;
+  return String(((h.readUInt32BE(o) & 0x7fffffff) % 1e6)).padStart(6, '0');
+}
+// ±30 soniya farqqa ruxsat; bir kod ikki marta ishlatilmaydi
+let lastStep = 0;
+export function totpOk(secret, code) {
+  code = String(code || '').replace(/\D/g, '');
+  if (!secret || code.length !== 6) return false;
+  const st = Math.floor(Date.now() / 30000);
+  for (const d of [0, -1, 1]) {
+    if (st + d > lastStep && crypto.timingSafeEqual(Buffer.from(totp(secret, st + d)), Buffer.from(code))) { lastStep = st + d; return true; }
+  }
+  return false;
 }

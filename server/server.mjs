@@ -7,17 +7,20 @@ import path from 'path';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { db, DATA_DIR, now, J, getSetting, setSetting, seed, seedErrorCodes, seedCourses2 } from './db.mjs';
-import { SEC_HEADERS, rateLimit, randCode, randToken, sha256, verifyPassword, hashPassword, ensureAdminPassword, createSession, getSession, destroySession, destroyAllSessions, parseCookies, decodeImage, clean } from './security.mjs';
+import { SEC_HEADERS, rateLimit, randCode, randToken, sha256, verifyPassword, hashPassword, ensureAdminPassword, createSession, getSession, destroySession, destroyAllSessions, parseCookies, decodeImage, clean, b32random, totpOk } from './security.mjs';
 import { diagnose, aiEnabled, aiInfo } from './ai.mjs';
 import { notifyRequest, sendText, sendTo, tgEnabled, setWebhook, botInfo, api as tgApi } from './telegram.mjs';
-import { createOps, topErrors } from './ops.mjs';
+import { createOps, topErrors, qrSvg } from './ops.mjs';
 import { createTgApp } from './tgapp.mjs';
 import { createAcademy } from './academy.mjs';
 import { createReviews } from './reviews.mjs';
 import { createWarranty } from './warranty.mjs';
-import { createAccounts } from './accounts.mjs';
+import { createAccounts, deviceName } from './accounts.mjs';
+import { createManuals } from './manuals.mjs';
+import { verifyStats, channelFor } from './verify.mjs';
 import { createMedia } from './media.mjs';
-import { renderAccount, renderVideos } from '../src/template6.mjs';
+import { renderVideos } from '../src/template6.mjs';
+import { renderAccount2, renderManuals } from '../src/template10.mjs';
 import { renderPlc, renderWarranty } from '../src/template4.mjs';
 import { renderMonitoring } from '../src/template7.mjs';
 import { renderTeam, renderService } from '../src/template8.mjs';
@@ -133,7 +136,14 @@ const json = (res, status, obj, extra = {}) => send(res, status, JSON.stringify(
 const html = (res, body, status = 200) => send(res, status, body, 'text/html; charset=utf-8', { 'Cache-Control': 'no-cache', ...PUB_FRAME });
 
 function clientIp(req) {
-  if (TRUST_PROXY) { const f = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim(); if (f) return f; }
+  // Proksi (Railway) haqiqiy manzilni ro'yxat OXIRIGA qo'shadi; boshidagi qiymatni mijoz o'zi soxtalashtirishi mumkin.
+  // TRUST_PROXY=1 bitta proksi: o'ngdan birinchi manzil olinadi.
+  if (TRUST_PROXY) {
+    const list = String(req.headers['x-forwarded-for'] || '').split(',').map((x) => x.trim()).filter(Boolean);
+    const hops = Math.max(1, parseInt(process.env.TRUST_PROXY, 10) || 1);
+    const f = list[Math.max(0, list.length - hops)];
+    if (f && /^[0-9a-fA-F:.]{3,45}$/.test(f)) return f;
+  }
   return req.socket.remoteAddress || '';
 }
 const isSecure = (req) => req.socket.encrypted || (TRUST_PROXY && req.headers['x-forwarded-proto'] === 'https');
@@ -203,8 +213,9 @@ function routePage(req, res, p) {
   if (p === '/academy/') return html(res, renderAcademyList(lang, t, c, listCourses(), VER));
   if (p === '/account/') {
     const u = accounts.userFrom(req);
-    return html(res, renderAccount(lang, t, c, u ? { user: accounts.pub(u), requests: accounts.myRequests(u.id), academy: academy.summaryForUser(u, lang), videos: media.forPage(lang, u).length, tgReady: tgEnabled() && Boolean(BOT_USERNAME) } : null, VER));
+    return html(res, renderAccount2(lang, t, c, u ? { user: accounts.pub(u), requests: accounts.myRequests(u.id), academy: academy.summaryForUser(u, lang), videos: media.forPage(lang, u), manuals: manuals.forPage(lang, u), sessions: accounts.sessions(u), verifyChannel: channelFor(u.login), tgReady: tgEnabled() && Boolean(BOT_USERNAME) } : null, VER));
   }
+  if (p === '/manuals/') { const usr = accounts.userFrom(req); return html(res, renderManuals(lang, t, c, manuals.forPage(lang, usr), Boolean(usr), VER)); }
   if (p === '/videos/') return html(res, renderVideos(lang, t, c, media.forPage(lang, accounts.userFrom(req)), Boolean(accounts.userFrom(req)), VER));
   if (academy.page(req, res, lang, p, t, c)) return;
   if ((mm = p.match(/^\/academy\/([a-z0-9-]{1,80})\/$/))) {
@@ -216,7 +227,7 @@ function routePage(req, res, p) {
 
 function sitemap(res) {
   const c = cfg();
-  const subs = ['', 'services/', ...LP_SLUGS.map((x) => `services/${x}/`), ...LP_CITIES.map((x) => `services/city/${x}/`), 'academy/', 'monitoring/', 'robots/', 'documents/', 'team/', 'plc/', 'warranty/', 'support/', 'portfolio/', 'videos/', 'track/', ...ops.sitemapPaths(), ...listPortfolio().filter((p) => !p.sample).map((p) => `portfolio/${p.slug}/`), ...listCourses().map((x) => `academy/${x.slug}/`)];
+  const subs = ['', 'services/', ...LP_SLUGS.map((x) => `services/${x}/`), ...LP_CITIES.map((x) => `services/city/${x}/`), 'academy/', 'monitoring/', 'robots/', 'documents/', 'team/', 'plc/', 'warranty/', 'support/', 'portfolio/', 'videos/', 'manuals/', 'track/', ...ops.sitemapPaths(), ...listPortfolio().filter((p) => !p.sample).map((p) => `portfolio/${p.slug}/`), ...listCourses().map((x) => `academy/${x.slug}/`)];
   const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${subs.flatMap((s) => LANGS.map((l) => `  <url><loc>${esc(c.domain + pageUrl(l, s))}</loc><lastmod>${now().slice(0, 10)}</lastmod>${LANGS.map((a) => `<xhtml:link rel="alternate" hreflang="${a}" href="${esc(c.domain + pageUrl(a, s))}"/>`).join('')}<xhtml:link rel="alternate" hreflang="x-default" href="${esc(c.domain + pageUrl('uz', s))}"/></url>`)).join('\n')}\n</urlset>\n`;
   send(res, 200, xml, MIME['.xml'], { 'Cache-Control': 'public, max-age=3600' });
 }
@@ -395,6 +406,8 @@ heroOf = media.heroFile;
 ctx.media = media;
 const accounts = createAccounts(ctx);
 ctx.accounts = accounts;
+const manuals = createManuals(ctx);
+ctx.manuals = manuals;
 const ops = createOps(ctx);
 const academy = createAcademy({ ...ctx, courseBySlug, listCourses, lessonsOf, quizOf });
 ctx.academy = academy;
@@ -433,13 +446,60 @@ function adminShell(res, csrf) {
 
 async function adminLogin(req, res, ip) {
   if (!sameOrigin(req)) return json(res, 403, { error: 'origin' });
-  if (!rateLimit(`login:${ip}`, 5, 900e3)) return json(res, 429, { error: 'rate' });
+  if (!rateLimit(`login:${ip}`, 5, 900e3) || !rateLimit('login:global', 40, 900e3)) { adminLog(ip, req, 'rate'); return json(res, 429, { error: 'rate' }); }
   const b = await readJson(req);
-  if (!verifyPassword(String(b.password || ''), getSetting('admin_hash'))) { await new Promise((r) => setTimeout(r, 400)); return json(res, 401, { error: 'bad_password' }); }
+  if (!verifyPassword(String(b.password || ''), getSetting('admin_hash'))) { adminLog(ip, req, 'bad_password'); await new Promise((r) => setTimeout(r, 400)); return json(res, 401, { error: 'bad_password' }); }
+  const otpSecret = getSetting('admin_totp', '');
+  if (otpSecret) {
+    if (!b.otp) return json(res, 401, { error: 'otp_required' });
+    if (!rateLimit(`otp:${ip}`, 6, 900e3) || !totpOk(otpSecret, b.otp)) { adminLog(ip, req, 'bad_otp'); return json(res, 401, { error: 'bad_otp' }); }
+  }
+  const known = db.prepare("SELECT 1 FROM admin_log WHERE ok = 1 AND ip = ? LIMIT 1").get(ip);
+  adminLog(ip, req, 'ok');
+  if (!known) sendText(`🛡 Admin panelga yangi manzildan kirildi\n${esc(deviceName(req.headers['user-agent']))} · ${esc(ip)}\nSiz bo‘lmasangiz, darhol parolni almashtiring.`).catch(() => {});
   const s = createSession();
   const cookie = `${COOKIE(req)}=${s.token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${s.maxAge}${isSecure(req) ? '; Secure' : ''}`;
   return json(res, 200, { ok: true, csrf: s.csrf }, { 'Set-Cookie': cookie });
 }
+db.exec('CREATE TABLE IF NOT EXISTS admin_log (id INTEGER PRIMARY KEY, at TEXT NOT NULL, ip TEXT, ua TEXT, ok INTEGER NOT NULL, result TEXT)');
+function adminLog(ip, req, result) {
+  db.prepare('INSERT INTO admin_log(at, ip, ua, ok, result) VALUES (?, ?, ?, ?, ?)').run(now(), ip, deviceName(req.headers['user-agent']), result === 'ok' ? 1 : 0, result);
+  db.prepare('DELETE FROM admin_log WHERE at < ?').run(new Date(Date.now() - 180 * 864e5).toISOString());
+  // Ketma-ket ko'p xato urinish: egasiga ogohlantirish (soatiga bir marta)
+  if (result !== 'ok' && db.prepare('SELECT COUNT(*) n FROM admin_log WHERE ok = 0 AND at > ?').get(new Date(Date.now() - 3600e3).toISOString()).n >= 10 && rateLimit('adminwarn', 1, 3600e3)) {
+    sendText('⚠️ Admin panelga oxirgi soatda 10 tadan ortiq noto‘g‘ri kirish urinishi bo‘ldi. Ikki bosqichli kirishni yoqing: Admin → Sozlamalar → Xavfsizlik.').catch(() => {});
+  }
+}
+// Admin: ikki bosqichli kirish va kirishlar jurnali
+async function adminSecurity(req, res, p, method) {
+  if (p === '/security' && method === 'GET') {
+    return json(res, 200, { totp: Boolean(getSetting('admin_totp', '')), log: db.prepare('SELECT at, ip, ua, ok, result FROM admin_log ORDER BY id DESC LIMIT 40').all(), verify: verifyStats(),
+      fails24: db.prepare("SELECT COUNT(*) n FROM user_events WHERE kind = 'login_fail' AND at > ?").get(new Date(Date.now() - 864e5).toISOString()).n }), true;
+  }
+  if (p === '/2fa/start' && method === 'POST') {
+    const secret = b32random(20); setSetting('admin_totp_pending', secret);
+    return json(res, 200, { secret, uri: totpUri(secret) }), true;
+  }
+  if (p === '/2fa/qr.svg' && method === 'GET') {
+    const secret = getSetting('admin_totp_pending', '');
+    if (!secret) return send(res, 404, ''), true;
+    return send(res, 200, qrSvg(totpUri(secret)), 'image/svg+xml', { 'Cache-Control': 'no-store' }), true;
+  }
+  if (p === '/2fa/enable' && method === 'POST') {
+    const b = await readJson(req); const secret = getSetting('admin_totp_pending', '');
+    if (!secret || !totpOk(secret, b.code)) return json(res, 400, { error: 'bad_otp' }), true;
+    setSetting('admin_totp', secret); setSetting('admin_totp_pending', '');
+    return json(res, 200, { ok: true }), true;
+  }
+  if (p === '/2fa/disable' && method === 'POST') {
+    const b = await readJson(req);
+    if (!verifyPassword(String(b.password || ''), getSetting('admin_hash')) || !totpOk(getSetting('admin_totp', ''), b.code)) return json(res, 400, { error: 'bad_otp' }), true;
+    setSetting('admin_totp', '');
+    return json(res, 200, { ok: true }), true;
+  }
+  return false;
+}
+const totpUri = (secret) => `otpauth://totp/${encodeURIComponent(cfg().brand + ':admin')}?secret=${secret}&issuer=${encodeURIComponent(cfg().brand)}&digits=6&period=30`;
 
 function adminUploadServe(req, res, file) {
   if (!adminSession(req)) return send(res, 401, '');
@@ -661,6 +721,8 @@ async function adminApi(req, res, p, sess) {
   if (await reviews.admin(req, res, p, method)) return;
   if (await team.admin(req, res, p, method)) return;
   if (await accounts.admin(req, res, p, method, q)) return;
+  if (await manuals.admin(req, res, p, method, q, readBody)) return;
+  if (await adminSecurity(req, res, p, method)) return;
   if (await media.admin(req, res, p, method, q, readBody)) return;
   await ops.admin(req, res, p, method, q);
   if (res.headersSent) return;
@@ -703,6 +765,7 @@ async function handle(req, res) {
   }
   if ((m = p.match(/^\/media\/hero\/([A-Za-z0-9_-]{24}\.(?:mp4|webm))$/)) && (method === 'GET' || method === 'HEAD')) return media.serve(req, res, m[1], u.searchParams, true);
   if ((m = p.match(/^\/media\/v\/([A-Za-z0-9_-]{24}\.(?:mp4|webm))$/)) && (method === 'GET' || method === 'HEAD')) return media.serve(req, res, m[1], u.searchParams);
+  if ((m = p.match(/^\/manuals\/f\/(\d{1,9})\/$/)) && (method === 'GET' || method === 'HEAD')) return manuals.serve(req, res, +m[1], accounts.userFrom(req));
   if (p === '/sitemap.xml') return sitemap(res);
   if (p === '/robots.txt') return robots(res);
   { const vf = verifyFile(p); if (vf) { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); return res.end(vf); } }

@@ -19,13 +19,15 @@ const tgCalls = [];
 const mock = http.createServer((req, res) => {
   let b = ''; req.on('data', (c) => { b += c; }); req.on('end', () => {
     const method = req.url.split('/').pop();
-    tgCalls.push({ method, body: b.startsWith('{') ? JSON.parse(b) : {} });
+    tgCalls.push({ method, body: b.startsWith('{') ? JSON.parse(b) : {}, raw: b, url: req.url });
     res.setHeader('content-type', 'application/json');
+    if (req.url === '/api/auth/login') return res.end(JSON.stringify({ data: { token: 'eskiz-test' } }));
+    if (req.url === '/api/message/sms/send') return res.end(JSON.stringify({ id: 'x', status: 'waiting' }));
     res.end(JSON.stringify({ ok: true, result: method === 'getMe' ? { id: 1, username: 'texnika_test_bot' } : { message_id: 1 } }));
   });
 }).listen(0);
 await new Promise((r) => mock.on('listening', r));
-const srv = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'server/server.mjs'], { cwd: ROOT, env: { ...process.env, PORT: String(PORT), DATA_DIR: DATA, ADMIN_PASSWORD: PW, AI_GATEWAY_API_KEY: '', ANTHROPIC_API_KEY: '', TELEGRAM_BOT_TOKEN: BOT, TELEGRAM_CHAT_ID: '999', TELEGRAM_WEBHOOK_SECRET: SECRET, TELEGRAM_API_BASE: `http://localhost:${mock.address().port}`, PUBLIC_URL: '' }, stdio: ['ignore', 'pipe', 'inherit'] });
+const srv = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'server/server.mjs'], { cwd: ROOT, env: { ...process.env, PORT: String(PORT), DATA_DIR: DATA, ADMIN_PASSWORD: PW, AI_GATEWAY_API_KEY: '', ANTHROPIC_API_KEY: '', TELEGRAM_BOT_TOKEN: BOT, TELEGRAM_CHAT_ID: '999', TELEGRAM_WEBHOOK_SECRET: SECRET, TELEGRAM_API_BASE: `http://localhost:${mock.address().port}`, ESKIZ_API_BASE: `http://localhost:${mock.address().port}`, ESKIZ_EMAIL: 'test@x.uz', ESKIZ_PASSWORD: 'p', BREVO_API_KEY: '', MAIL_FROM: '', PUBLIC_URL: '' }, stdio: ['ignore', 'pipe', 'inherit'] });
 await new Promise((r) => srv.stdout.on('data', (d) => String(d).includes('http://') && r()));
 
 let fail = 0;
@@ -49,7 +51,17 @@ try {
   const tr = await (await get(`/api/track/${cr.code}`)).json();
   ok(tr.status === 'new' && !('phone' in tr) && !('name' in tr), 'kuzatuv shaxsiy ma’lumotni bermaydi');
   ok((await post('/api/diagnose', { lang: 'uz', message: 'Robot to‘xtadi, 50204 xatosi chiqyapti' })).status === 503, 'AI kalitsiz o‘chiq');
-  const rg = await post('/api/account/register', { name: 'Test Xodim', login: '+998 90 111 22 33', password: 'parol-1234', lang: 'uz' });
+  const smsCode = () => ((tgCalls.filter((c) => c.url === '/api/message/sms/send').pop()?.raw || '').match(/kodi (\d{6})/) || [])[1];
+  const nc = await post('/api/account/register', { name: 'Test Xodim', login: '+998 90 111 22 33', password: 'parol-1234', lang: 'uz' });
+  ok(nc.status === 400 && (await nc.json()).error === 'need_code', 'ro‘yxat: SMS sozlanganda kod talab qilinadi');
+  ok((await post('/api/account/register', { name: 'Test Xodim', login: '+998 90 111 22 33', password: '12345678', lang: 'uz' })).status === 400, 'ro‘yxat: oddiy parol rad etiladi');
+  const sc = await (await post('/api/account/code', { purpose: 'register', login: '+998 90 111 22 33', lang: 'uz' })).json();
+  await new Promise((r) => setTimeout(r, 200));
+  const code1 = smsCode();
+  ok(sc.channel === 'sms' && /^\d{6}$/.test(code1 || ''), 'ro‘yxat: SMS kod yuborildi (Eskiz)');
+  ok((await post('/api/account/code', { purpose: 'register', login: '+998 90 111 22 33', lang: 'uz' })).status === 429, 'ro‘yxat: kodni 60 soniyada qayta yuborib bo‘lmaydi');
+  ok((await post('/api/account/register', { name: 'Test Xodim', login: '+998 90 111 22 33', password: 'parol-1234', lang: 'uz', code: code1 === '000000' ? '111111' : '000000' })).status === 400, 'ro‘yxat: noto‘g‘ri kod rad etiladi');
+  const rg = await post('/api/account/register', { name: 'Test Xodim', login: '+998 90 111 22 33', password: 'parol-1234', lang: 'uz', code: code1 });
   const UC = rg.headers.getSetCookie().map((c) => c.split(';')[0]).join('; ');
   ok(rg.status === 200 && UC.includes('tx_user=') && UC.includes('tx_in=1') && rg.headers.getSetCookie()[0].includes('HttpOnly'), 'ro‘yxatdan o‘tish va sessiya');
   ok((await post('/api/academy/join', { code: 'DEMO-2026' })).status === 401, 'akademiya: kabinetga kirmasdan qo‘shilib bo‘lmaydi');
@@ -265,11 +277,10 @@ try {
   await wh({ message_id: 9, from: { id: 8881, first_name: 'Xodim' }, chat: { id: 8881, type: 'private' }, text: `/start ${tl.url.split('start=')[1]}` });
   await wait();
   ok((await (await get('/api/account/me', { Cookie: UC })).json()).tg === true, 'kabinet: Telegram ulandi');
-  ok((await post('/api/account/forgot', { login: '+998901112233' })).status === 200, 'parolni tiklash so‘rovi');
+  ok((await (await post('/api/account/forgot', { login: '+998901112233' })).json()).channel === 'sms', 'parolni tiklash so‘rovi (SMS)');
   await wait();
-  const rmsg = tgCalls.filter((c) => c.body.chat_id === '8881').pop();
-  const rcode = ((rmsg?.body.text || '').match(/<b>(\d{6})<\/b>/) || [])[1];
-  ok(!!rcode, 'parolni tiklash: kod Telegramga keldi');
+  const rcode = smsCode();
+  ok(!!rcode && rcode !== code1, 'parolni tiklash: kod SMS orqali keldi');
   ok((await post('/api/account/reset', { login: '901112233', code: rcode === '000000' ? '111111' : '000000', password: 'yangi-parol-99' })).status === 400, 'parolni tiklash: noto‘g‘ri kod');
   ok((await post('/api/account/reset', { login: '901112233', code: rcode, password: 'yangi-parol-99' })).status === 200 && (await post('/api/account/login', { login: '901112233', password: 'yangi-parol-99' })).status === 200, 'parolni tiklash: yangi parol bilan kirish');
   ok((await get('/api/account/me', { Cookie: UC })).status === 401, 'parol tiklangach eski sessiyalar yopiladi');
@@ -375,6 +386,45 @@ try {
   const inv = await (await get(`/admin/api/docs/${cp.id}`, { Cookie: cookie })).json();
   ok(/^HS-/.test(inv.number) && inv.status === 'draft' && inv.data.ref === rdoc.number && inv.data.items.length === 1, 'hisobdan nusxa: to‘lov uchun hisob');
   ok(/name="keywords"/.test(await (await get('/support/')).text()) && /name="keywords"/.test(await (await get('/academy/')).text()), 'kalit so‘zlar: ichki sahifalarda');
+  // 20-bosqich: kabinet, qurilmalar, qo'llanmalar, admin ikki bosqichli kirish
+  {
+    const lg1 = await post('/api/account/login', { login: '901112233', password: tp.password }, { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0) Chrome/120.0' });
+    const C1 = lg1.headers.getSetCookie().map((c) => c.split(';')[0]).join('; ');
+    const lg2 = await post('/api/account/login', { login: '901112233', password: tp.password }, { 'User-Agent': 'Mozilla/5.0 (Linux; Android 14) Chrome/120.0' });
+    const C2 = lg2.headers.getSetCookie().map((c) => c.split(';')[0]).join('; ');
+    const ss = await (await get('/api/account/sessions', { Cookie: C1 })).json();
+    ok(ss.length >= 2 && ss.some((x) => x.current && x.device.includes('Windows')) && ss.some((x) => x.device.includes('Android')) && !JSON.stringify(ss).includes('127.0.0.1'), 'kabinet: qurilmalar ro‘yxati (IP yashirilgan)');
+    ok((await post('/api/account/sessions', { id: 'others' }, { Cookie: C1 })).status === 200 && (await get('/api/account/me', { Cookie: C2 })).status === 401 && (await get('/api/account/me', { Cookie: C1 })).status === 200, 'kabinet: boshqa qurilmalardan chiqarish');
+    const cab = await (await get('/account/', { Cookie: C1 })).text();
+    ok(['class="cab"', 'data-pane="manuals"', 'data-pane="security"', 'id="dev-list"', 'cab-ni'].every((x) => cab.includes(x)) && !/style="/.test(cab), 'kabinet: yon menyu va bo‘limlar');
+    const pdf = Buffer.from('%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n');
+    const up = await (await fetch(B + '/admin/api/manual-upload?name=KUKA.pdf', { method: 'POST', headers: { ...A, Origin: B, 'Content-Type': 'application/octet-stream' }, body: pdf })).json();
+    ok(/\.pdf$/.test(up.file || ''), 'qo‘llanma: PDF yuklandi');
+    ok((await fetch(B + '/admin/api/manual-upload?name=x.pdf', { method: 'POST', headers: { ...A, Origin: B }, body: Buffer.from('<html>bad</html>') })).status === 400, 'qo‘llanma: PDF bo‘lmagan fayl rad etiladi');
+    const mn = await (await post('/admin/api/manuals', { title: { uz: 'KUKA KRC4 qo‘llanmasi' }, access: 'users', published: true, file: up.file }, A)).json();
+    ok(mn.id > 0, 'qo‘llanma saqlandi');
+    const anon = await get(`/manuals/f/${mn.id}/`);
+    ok(anon.status === 302, 'qo‘llanma: kirmagan odam ocholmaydi');
+    const mine = await get(`/manuals/f/${mn.id}/`, { Cookie: C1 });
+    ok(mine.status === 200 && mine.headers.get('content-type') === 'application/pdf' && mine.headers.get('content-security-policy').includes('sandbox'), 'qo‘llanma: foydalanuvchi ochadi');
+    ok((await (await get('/account/', { Cookie: C1 })).text()).includes('KUKA KRC4 qo‘llanmasi') && (await (await get('/manuals/')).text()).includes('KUKA KRC4'), 'qo‘llanma: kabinet va sahifada ko‘rinadi');
+    const ul = await (await get('/admin/api/users', { Cookie: cookie })).json();
+    ok(ul.rows.some((u) => u.verified === 1 && u.fails >= 1) && typeof ul.total.online === 'number', 'admin: tasdiqlangan va xato urinishlar ko‘rinadi');
+    ok((await (await get('/admin/api/users-activity', { Cookie: cookie })).json()).some((e) => e.kind === 'manual'), 'admin: faollik lentasi');
+    // TOTP
+    const b32 = (str) => { const A2 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'; let bits = 0, val = 0; const o = []; for (const ch of str) { val = (val << 5) | A2.indexOf(ch); bits += 5; if (bits >= 8) { o.push((val >>> (bits - 8)) & 255); bits -= 8; } } return Buffer.from(o); };
+    const totp = (sec, st = Math.floor(Date.now() / 30000)) => { const m = Buffer.alloc(8); m.writeBigUInt64BE(BigInt(st)); const hm = crypto.createHmac('sha1', b32(sec)).update(m).digest(); const o = hm[hm.length - 1] & 15; return String((hm.readUInt32BE(o) & 0x7fffffff) % 1e6).padStart(6, '0'); };
+    const f2 = await (await post('/admin/api/2fa/start', {}, A)).json();
+    ok((await get('/admin/api/2fa/qr.svg', { Cookie: cookie })).headers.get('content-type').includes('svg'), 'admin 2FA: QR kod');
+    ok((await post('/admin/api/2fa/enable', { code: totp(f2.secret, Math.floor(Date.now() / 30000) - 1) }, A)).status === 200, 'admin 2FA: yoqildi');
+    const noOtp = await post('/admin/login', { password: PW });
+    ok(noOtp.status === 401 && (await noOtp.json()).error === 'otp_required', 'admin 2FA: kodsiz kirib bo‘lmaydi');
+    ok((await post('/admin/login', { password: PW, otp: '000000' })).status === 401, 'admin 2FA: noto‘g‘ri kod');
+    const wOtp = await post('/admin/login', { password: PW, otp: totp(f2.secret) });
+    ok(wOtp.status === 200, 'admin 2FA: parol va kod bilan kirish');
+    const sec = await (await get('/admin/api/security', { Cookie: cookie })).json();
+    ok(sec.totp === true && sec.log.some((x) => x.result === 'bad_otp') && sec.verify.sms === true, 'admin: xavfsizlik jurnali');
+  }
 } catch (e) { console.error(e); fail++; } finally {
   try { sdb?.close(); } catch {}
   srv.kill(); mock.close(); fs.rmSync(DATA, { recursive: true, force: true });

@@ -125,7 +125,7 @@ export function renderAccount(lang, t, cfg, data, assetVer) {
 }
 
 /* ---------- Video qo'llanmalar ---------- */
-function player(v) {
+export function player(v) {
   if (!v.view) return `<div class="vid-lock">${icon('lock')}<span>${esc(v._t.locked)}</span></div>`;
   if (v.view.type === 'file') return `<video class="vid-el" controls preload="metadata" playsinline controlslist="nodownload" data-vid="${v.id}"><source src="${esc(v.view.src)}" type="${esc(v.view.mime)}"></video>`;
   return `<iframe class="vid-el" src="${esc(v.view.src)}" title="${esc(v.title)}" loading="lazy" allow="fullscreen; picture-in-picture; encrypted-media" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" data-vid="${v.id}"></iframe>`;
