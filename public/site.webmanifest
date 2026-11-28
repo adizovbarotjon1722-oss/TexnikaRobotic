@@ -17,5 +17,46 @@
       "sizes": "any",
       "type": "image/svg+xml"
     }
+  ],
+  "id": "/",
+  "scope": "/",
+  "description": "PLC, ABB/KUKA robot servisi, monitoring va o‘qitish",
+  "shortcuts": [
+    {
+      "name": "Ariza qoldirish",
+      "short_name": "Ariza",
+      "url": "/#contact",
+      "icons": [
+        {
+          "src": "/assets/img/logo.png",
+          "sizes": "512x512",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Shaxsiy kabinet",
+      "short_name": "Kabinet",
+      "url": "/account/",
+      "icons": [
+        {
+          "src": "/assets/img/logo.png",
+          "sizes": "512x512",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Admin panel",
+      "short_name": "Admin",
+      "url": "/admin/",
+      "icons": [
+        {
+          "src": "/assets/img/logo.png",
+          "sizes": "512x512",
+          "type": "image/png"
+        }
+      ]
+    }
   ]
 }

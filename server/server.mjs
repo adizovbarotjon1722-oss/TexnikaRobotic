@@ -442,7 +442,7 @@ const COOKIE = (req) => (isSecure(req) ? '__Host-tx_admin' : 'tx_admin');
 function adminSession(req) { return getSession(parseCookies(req.headers.cookie)[COOKIE(req)]); }
 
 function adminShell(res, csrf) {
-  send(res, 200, `<!doctype html><html lang="uz"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Admin · ${esc(cfg().brand)}</title><link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/assets/css/style.css?v=${VER}"><link rel="stylesheet" href="/assets/css/admin.css?v=${VER}"><script src="/assets/js/admin.js?v=${VER}" defer></script></head><body class="adm"><div id="adm" data-csrf="${esc(csrf || '')}"></div></body></html>`, 'text/html; charset=utf-8', { 'Cache-Control': 'no-cache' });
+  send(res, 200, `<!doctype html><html lang="uz"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Admin · ${esc(cfg().brand)}</title><link rel="manifest" href="/site.webmanifest"><meta name="theme-color" content="#0f151c"><link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/assets/css/style.css?v=${VER}"><link rel="stylesheet" href="/assets/css/admin.css?v=${VER}"><script src="/assets/js/admin.js?v=${VER}" defer></script></head><body class="adm"><div id="adm" data-csrf="${esc(csrf || '')}"></div></body></html>`, 'text/html; charset=utf-8', { 'Cache-Control': 'no-cache' });
 }
 
 async function adminLogin(req, res, ip) {
@@ -460,7 +460,9 @@ async function adminLogin(req, res, ip) {
   if (!known) sendText(`🛡 Admin panelga yangi manzildan kirildi\n${esc(deviceName(req.headers['user-agent']))} · ${esc(ip)}\nSiz bo‘lmasangiz, darhol parolni almashtiring.`).catch(() => {});
   const s = createSession();
   const cookie = `${COOKIE(req)}=${s.token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${s.maxAge}${isSecure(req) ? '; Secure' : ''}`;
-  return json(res, 200, { ok: true, csrf: s.csrf }, { 'Set-Cookie': cookie });
+  // tx_adm: faqat belgi (maxfiy emas), shu qurilmada saytda "Admin" tugmasini ko'rsatish uchun
+  const hint = `tx_adm=1; Path=/; SameSite=Lax; Max-Age=31536000${isSecure(req) ? '; Secure' : ''}`;
+  return json(res, 200, { ok: true, csrf: s.csrf }, { 'Set-Cookie': [cookie, hint] });
 }
 db.exec('CREATE TABLE IF NOT EXISTS admin_log (id INTEGER PRIMARY KEY, at TEXT NOT NULL, ip TEXT, ua TEXT, ok INTEGER NOT NULL, result TEXT)');
 function adminLog(ip, req, result) {

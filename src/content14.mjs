@@ -1,6 +1,7 @@
 // 21-bosqich: bosh sahifada "Sayt nima uchun kerak" bo'limi: kimga, qanday foyda, saytdagi bepul vositalar, odatiy usul bilan solishtirish
 export const content14 = {
   uz: {
+    staff: { admin: 'Admin panel', login: 'Xodimlar uchun kirish' },
     why: {
       eyebrow: 'Sayt nima uchun kerak',
       title: 'Uskuna to‘xtaganda nima qilishni aniq bilasiz',
@@ -35,6 +36,7 @@ export const content14 = {
     }
   },
   ru: {
+    staff: { admin: 'Админ-панель', login: 'Вход для сотрудников' },
     why: {
       eyebrow: 'Зачем этот сайт',
       title: 'Когда оборудование встало, вы точно знаете, что делать',
@@ -69,6 +71,7 @@ export const content14 = {
     }
   },
   en: {
+    staff: { admin: 'Admin panel', login: 'Staff sign-in' },
     why: {
       eyebrow: 'Why this site',
       title: 'When equipment stops, you know exactly what to do',

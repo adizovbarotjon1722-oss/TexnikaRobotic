@@ -77,6 +77,10 @@ try {
   const lr = await post('/admin/login', { password: PW });
   const cookie = lr.headers.get('set-cookie').split(';')[0]; const { csrf } = await lr.json();
   ok(!!csrf && lr.headers.get('set-cookie').includes('HttpOnly'), 'admin kirish');
+  ok(lr.headers.getSetCookie().some((c) => c.startsWith('tx_adm=1') && !c.includes('HttpOnly')), 'admin: qurilma belgisi (Admin tugmasi uchun)');
+  { const hm = await (await get('/')).text(), mf = await (await get('/site.webmanifest')).json();
+    ok(hm.includes('class="icon-btn hdr-adm" href="/admin/" hidden') && hm.includes('class="ftr-staff" href="/admin/"'), 'sayt: admin kirish tugmasi va xodimlar havolasi');
+    ok(mf.shortcuts?.some((x) => x.url === '/admin/'), 'ilova: admin panel yorlig‘i'); }
   const st = await (await get('/admin/api/stats?days=7', { Cookie: cookie })).json();
   ok(st.totals.requests === 1, 'analitika');
   ok((await post('/admin/api/texts', { lang: 'en', key: 'v3.hero.h1', value: 'Selftest heading' }, { Cookie: cookie })).status === 403, 'CSRF tokensiz rad etiladi');

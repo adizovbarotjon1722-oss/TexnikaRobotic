@@ -137,6 +137,7 @@
     const [k, arg] = location.hash.slice(1).split('/');
     const tab = TABS.some((t) => t[0] === k) ? k : 'dash';
     for (const [n, b] of Object.entries(navBtns)) b.classList.toggle('on', n === tab), b.setAttribute('aria-current', n === tab ? 'page' : 'false');
+    if (navBtns[tab] && matchMedia('(max-width: 760px)').matches) navBtns[tab].scrollIntoView({ block: 'nearest', inline: 'center' });
     clear(main);
     ({ dash: viewDash, req: viewReq, eq: viewEq, docs: viewDocs, err: viewErr, team: viewTeam, port: viewPort, rev: viewRev, acad: viewAcad, vid: viewVid, man: viewMan, users: viewUsers, text: viewText, set: viewSet })[tab](arg);
     main.focus({ preventScroll: true });

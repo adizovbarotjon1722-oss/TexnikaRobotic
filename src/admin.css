@@ -66,6 +66,7 @@
 .adm .side-btn.on { color: var(--fg); background: color-mix(in srgb, var(--accent) 13%, transparent); }
 .adm .side-btn.on::before { content: ""; position: absolute; left: -12px; top: 8px; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0; background: var(--accent); }
 .adm .side-btn.on svg { color: var(--accent); }
+.adm .side-btn svg, .adm .side-logo svg { flex: none; }
 .adm .side-badge { margin-left: auto; min-width: 22px; height: 20px; padding: 0 6px; border-radius: 99px; background: var(--accent); color: var(--on-accent); font: 700 11px/20px var(--f-mono); text-align: center; }
 .adm .side-foot { margin-top: auto; display: flex; flex-direction: column; gap: 2px; border-top: 1px solid var(--line); padding-top: 12px; }
 .adm .side-link { background: none; border: 0; color: var(--muted); font: 500 var(--fs-sm)/1 var(--f-body); text-align: left; padding: 10px 12px; cursor: pointer; text-decoration: none; border-radius: 8px; }
@@ -268,12 +269,15 @@
   .adm { --side: 0px; }
   .adm .side { position: sticky; top: 0; inset: auto; width: auto; flex-direction: row; align-items: center; padding: 8px 10px; border-right: 0; border-bottom: 1px solid var(--line); overflow-x: auto; gap: 6px; }
   .adm .side-logo { padding: 0 6px 0 0; }
-  .adm .side-logo span, .adm .side-foot { display: none; }
-  .adm .side-nav { flex-direction: row; gap: 2px; }
-  .adm .side-btn { padding: 9px 10px; white-space: nowrap; }
-  .adm .side-btn span { display: none; }
-  .adm .side-btn.on span { display: inline; }
+  .adm .side-logo span { display: none; }
+  .adm .side { scrollbar-width: none; -webkit-overflow-scrolling: touch; background: var(--bg); z-index: 20; }
+  .adm .side::-webkit-scrollbar { display: none; }
+  .adm .side-nav { flex-direction: row; gap: 4px; }
+  .adm .side-btn { width: auto; flex: none; padding: 9px 12px; gap: 8px; white-space: nowrap; border: 1px solid var(--line); }
+  .adm .side-btn.on { border-color: transparent; }
   .adm .side-btn.on::before { display: none; }
+  .adm .side-foot { display: flex; flex-direction: row; gap: 4px; margin: 0; padding: 0 0 0 6px; border: 0; flex: none; }
+  .adm .side-foot .side-link { white-space: nowrap; }
   .adm .adm-main { margin-left: 0; padding: 20px 16px 60px; }
   .adm .kpis { grid-template-columns: 1fr 1fr; }
   .adm .kpis .kpi:last-child { grid-column: 1 / -1; }

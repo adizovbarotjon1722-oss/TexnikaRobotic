@@ -129,7 +129,7 @@ function header(t, lang, sub, mode, cfg) {
       ${megaMenu(t, lang, mode)}
       <div class="lang" role="group" aria-label="${esc(t.a11y.lang)}">${langLinks}</div>
       <button type="button" class="icon-btn theme-toggle" aria-label="${esc(t.a11y.theme)}" title="${esc(t.a11y.theme)}">${icon('sun', 'ic i-sun')}${icon('moon', 'ic i-moon')}</button>
-      ${mode === 'preview' ? '' : `<a class="icon-btn hdr-acc" href="${url(lang, 'account/')}" data-in="${esc(t.acc.navLabel)}" data-out="${esc(t.acc.signIn)}" aria-label="${esc(t.acc.navLabel)}" title="${esc(t.acc.navLabel)}"${sub === 'account/' ? ' aria-current="page"' : ''}>${icon('user')}<span class="hdr-acc-t">${esc(t.acc.signIn)}</span></a>`}
+      ${mode === 'preview' ? '' : `<a class="icon-btn hdr-acc" href="${url(lang, 'account/')}" data-in="${esc(t.acc.navLabel)}" data-out="${esc(t.acc.signIn)}" aria-label="${esc(t.acc.navLabel)}" title="${esc(t.acc.navLabel)}"${sub === 'account/' ? ' aria-current="page"' : ''}>${icon('user')}<span class="hdr-acc-t">${esc(t.acc.signIn)}</span></a><a class="icon-btn hdr-adm" href="/admin/" hidden aria-label="${esc(t.staff.admin)}" title="${esc(t.staff.admin)}">${icon('shield')}</a>`}
       <a class="btn btn-sm btn-primary hdr-cta" href="${mode === 'preview' ? '#contact' : `${home}#contact`}" data-ev="cta_header">${esc(t.nav.cta)}</a>
       <button type="button" class="icon-btn burger" aria-controls="site-nav" aria-expanded="false" aria-label="${esc(t.a11y.menu)}">${icon('menu')}</button>
     </div>
@@ -192,7 +192,7 @@ function footer(t, lang, cfg, mode, sub = null) {
     </ul></nav>
     <details class="privacy"><summary>${esc(t.footer.privacyTitle)}</summary><p>${esc(t.footer.privacy)}</p></details>
   </div>
-  <div class="wrap ftr-bottom"><p>© <span class="yr">${year}</span> ${esc(cfg.brand)}. ${esc(t.footer.rights)}</p><p class="ftr-note">${esc(t.brandsBlock.note)}</p></div>
+  <div class="wrap ftr-bottom"><p>© <span class="yr">${year}</span> ${esc(cfg.brand)}. ${esc(t.footer.rights)}</p><p class="ftr-note">${esc(t.brandsBlock.note)}</p>${mode === 'preview' ? '' : `<p><a class="ftr-staff" href="/admin/" rel="nofollow">${icon('lock')}${esc(t.staff.login)}</a></p>`}</div>
 </footer>`;
 }
 

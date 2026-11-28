@@ -1015,6 +1015,8 @@
 
   /* ---------- Shaxsiy kabinet ---------- */
   function initAccLink(app) {
+    var adm = app.querySelector('.hdr-adm');
+    if (adm && /(?:^|;\s*)tx_adm=1/.test(document.cookie)) adm.hidden = false;
     var a = app.querySelector('.hdr-acc');
     if (!a || !signedIn()) return;
     a.classList.add('is-in');
