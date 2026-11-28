@@ -56,6 +56,38 @@ function rateBlock(t, lang) {
   </form>`;
 }
 
+// "Sayt nima uchun kerak": kimga, qanday foyda, bepul vositalar, odatiy usul bilan solishtirish
+export function whyBlock(t, lang, cfg) {
+  const w = t.why;
+  if (!w) return '';
+  const href = (h) => (h.startsWith('#') ? h : url(lang, h));
+  return `<section class="section wy" id="why" aria-labelledby="wy-title"><div class="wrap">
+    ${secHead(w.eyebrow, w.title, w.lead, 'wy-title')}
+    <h3 class="wy-sub">${esc(w.forTitle)}</h3>
+    <ul class="wy-roles">${w.roles.map((r, i) => `<li class="wy-role reveal">
+      <div class="wy-role-top"><span class="wy-ic">${icon(r.icon)}</span><span class="wy-n mono">${String(i + 1).padStart(2, '0')}</span></div>
+      <h4>${esc(r.role)}</h4>
+      <p class="wy-pain"><span class="mono">${icon('alert')}</span>${esc(r.pain)}</p>
+      <p class="wy-gain"><span class="mono">${icon('check')}</span>${esc(r.gain)}</p>
+      <a class="link-arrow" href="${href(r.href)}">${esc(r.link)}${icon('arrow')}</a>
+    </li>`).join('')}</ul>
+    <div class="wy-grid">
+      <div class="wy-tools-wrap">
+        <h3 class="wy-sub">${esc(w.toolsTitle)}</h3><p class="wy-note">${esc(w.toolsLead)}</p>
+        <ul class="wy-tools">${w.tools.map((x) => `<li><a class="wy-tool reveal" href="${href(x.href)}"><span class="wy-ic">${icon(x.icon)}</span><span class="wy-tool-t"><b>${esc(x.name)}</b><small>${esc(x.text)}</small></span>${icon('arrow', 'ic wy-go')}</a></li>`).join('')}</ul>
+      </div>
+      <div class="wy-cmp-wrap">
+        <h3 class="wy-sub">${esc(w.cmpTitle)}</h3>
+        <div class="wy-cmp" role="table" aria-label="${esc(w.cmpTitle)}">
+          <div class="wy-row wy-head" role="row">${w.cmpHead.map((x, i) => `<span role="columnheader"${i === 2 ? ' class="wy-us"' : ''}>${esc(x)}</span>`).join('')}</div>
+          ${w.cmp.map(([k, a, b]) => `<div class="wy-row" role="row"><span role="rowheader" class="wy-k">${esc(k)}</span><span role="cell" class="wy-old">${esc(a)}</span><span role="cell" class="wy-us">${icon('check')}${esc(b)}</span></div>`).join('')}
+        </div>
+        <div class="cta-row wy-cta"><a class="btn btn-primary" href="#contact" data-ev="cta_why">${esc(w.cta)}${icon('arrow')}</a>${cfg.phoneOpen ? `<a class="btn btn-ghost" href="${telHref(cfg.phone)}" data-ev="call_why">${icon('phone')}<span>${esc(cfg.phone)}</span></a>` : ''}</div>
+      </div>
+    </div>
+  </div></section>`;
+}
+
 export function home2(t, lang, cfg, data) {
   const v = t.v2;
   const hid = new Set(cfg.hiddenSections || []);
@@ -95,6 +127,8 @@ export function home2(t, lang, cfg, data) {
     <ul class="tz-list">${v3.trust.items.map(([ic, a, x]) => `<li>${icon(ic)}<div><b>${esc(a)}</b><span>${esc(x)}</span></div></li>`).join('')}</ul>
     <p class="tz-brands"><span>${esc(v3.trust.brandsLabel)}</span>${v3.trust.brands.map((x) => `<b>${esc(x)}</b>`).join('')}</p>
   </div></section>
+
+  ${on('why') ? whyBlock(t, lang, cfg) : ''}
 
   ${on('directions') ? `<section class="section cat" id="services" aria-labelledby="cat-title"><div class="wrap">
     ${secHead(c.eyebrow, c.title, c.lead, 'cat-title')}

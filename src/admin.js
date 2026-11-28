@@ -1343,7 +1343,7 @@
 
   // Bosh sahifadagi bo‘limlarni yashirish yoki qayta ko‘rsatish
   async function sectionsCard() {
-    const SECS = [['directions', 'To‘rt yo‘nalish kartalari'], ['monitoring', 'Avtomatik monitoring'], ['training', 'O‘qitish (kurslar)'], ['team', 'Ustalar va bajarilgan ishlar'], ['trust', 'Kafolat va baholash']];
+    const SECS = [['why', 'Sayt nima uchun kerak (kimga, foyda, solishtirish)'], ['directions', 'To‘rt yo‘nalish kartalari'], ['monitoring', 'Avtomatik monitoring'], ['training', 'O‘qitish (kurslar)'], ['team', 'Ustalar va bajarilgan ishlar'], ['trust', 'Kafolat va baholash']];
     let st; try { st = await api('/sections'); } catch (e) { return h('div', { class: 'card' }, h('p', { class: 'err', text: errText(e) })); }
     const hid = new Set(st.hidden || []);
     const boxes = SECS.map(([k, l]) => [k, h('input', { type: 'checkbox', checked: !hid.has(k) }), l]);

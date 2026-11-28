@@ -50,7 +50,7 @@ const fileCfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'site.config.json'), 
 const SETTING_KEYS = ['brand', 'engineerName', 'phone', 'whatsapp', 'telegram', 'email', 'city_uz', 'city_ru', 'city_en', 'responseHours', 'domain',
   'company_legal', 'company_address', 'company_inn', 'company_bank', 'company_account', 'company_mfo', 'googleVerify', 'yandexVerify', 'admin_tg_ids', 'warrantyMonths', 'partsMonths', 'phoneMode'];
 const EXTRA_KEYS = SETTING_KEYS.slice(11);
-const HOME_SECTIONS = ['directions', 'monitoring', 'training', 'team', 'trust'];
+const HOME_SECTIONS = ['why', 'directions', 'monitoring', 'training', 'team', 'trust'];
 let BOT_USERNAME = '';
 let heroOf = () => '';
 function cfg() {

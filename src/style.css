@@ -2440,3 +2440,49 @@ h2 { font-weight: 600; letter-spacing: -0.015em; line-height: 1.15; }
 .cab .form, .cab-auth-card .form { padding: 0; border: 0; background: none; box-shadow: none; }
 .cab-side > * { flex: none; }
 @media (max-width: 900px) { .cab-nav { min-height: 46px; padding-bottom: 2px; } }
+
+/* 21: "Sayt nima uchun kerak" bloki */
+.wy { border-bottom: 1px solid var(--line); background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px); background-size: 48px 48px; }
+.wy-sub { font: 500 var(--fs-xs)/1.4 var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }
+.wy-roles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 56px; }
+.wy-role { display: flex; flex-direction: column; gap: 12px; min-width: 0; padding: 22px 20px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); border-top: 3px solid var(--accent); }
+.wy-role-top { display: flex; justify-content: space-between; align-items: center; }
+.wy-ic { display: inline-grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: 10px; background: var(--bg-2); border: 1px solid var(--line); color: var(--accent); }
+.wy-ic .ic { width: 22px; height: 22px; }
+.wy-n { font-size: var(--fs-xs); color: var(--muted); letter-spacing: .08em; }
+.wy-role h4 { font: 600 var(--fs-h3)/1.3 var(--f-display); }
+.wy-pain, .wy-gain { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 8px; font-size: var(--fs-sm); line-height: 1.5; }
+.wy-pain { color: var(--muted); }
+.wy-pain .ic { width: 16px; height: 16px; margin-top: 3px; color: var(--warn); }
+.wy-gain .ic { width: 16px; height: 16px; margin-top: 3px; color: var(--ok); }
+.wy-role .link-arrow { margin-top: auto; padding-top: 4px; font-size: var(--fs-sm); }
+.wy-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 40px; align-items: start; }
+.wy-note { margin: -8px 0 16px; color: var(--muted); font-size: var(--fs-sm); }
+.wy-tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.wy-tool { display: flex; gap: 12px; align-items: flex-start; height: 100%; padding: 14px; text-decoration: none; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); transition: border-color .2s, transform .2s; }
+.wy-tool:hover { border-color: var(--accent); transform: translateY(-2px); }
+.wy-tool .wy-ic { width: 34px; height: 34px; }
+.wy-tool .wy-ic .ic { width: 18px; height: 18px; }
+.wy-tool-t { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
+.wy-tool-t b { font-size: var(--fs-sm); font-weight: 600; line-height: 1.3; }
+.wy-tool-t small { font-size: var(--fs-xs); line-height: 1.45; color: var(--muted); }
+.wy-go { width: 16px; height: 16px; margin-top: 3px; color: var(--muted); transition: color .2s, transform .2s; }
+.wy-tool:hover .wy-go { color: var(--accent); transform: translateX(3px); }
+.wy-cmp { border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; background: var(--surface); }
+.wy-row { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1fr) minmax(0, 1.25fr); }
+.wy-row > span { padding: 13px 14px; font-size: var(--fs-sm); line-height: 1.45; border-top: 1px solid var(--line); min-width: 0; }
+.wy-head > span { border-top: 0; font: 500 var(--fs-xs)/1.4 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); background: var(--bg-2); }
+.wy-k { font-weight: 600; }
+.wy-old { color: var(--muted); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--muted) 45%, transparent); }
+.wy-row .wy-us { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.wy-head .wy-us { color: var(--accent-ink); }
+.wy-row:not(.wy-head) .wy-us { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 8px; font-weight: 500; }
+.wy-us .ic { width: 16px; height: 16px; margin-top: 3px; color: var(--ok); }
+.wy-cta { margin-top: 20px; }
+@media (max-width: 1080px) { .wy-roles { grid-template-columns: repeat(2, minmax(0, 1fr)); } .wy-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 600px) {
+  .wy-roles, .wy-tools { grid-template-columns: minmax(0, 1fr); }
+  .wy-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .wy-row > .wy-k { grid-column: 1 / -1; background: var(--bg-2); padding-block: 8px; font-size: var(--fs-xs); font-family: var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+  .wy-head > span:first-child { display: none; }
+}
